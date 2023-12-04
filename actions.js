@@ -1,19 +1,37 @@
-module.exports = function (self) {
+import got from 'got'
+
+const API_BASE = `https://live.rundownstudio.app/api-v0`
+
+export function UpdateActions (self) {
+	const gotOptions = {
+		headers: {
+		  'Authorization': `Bearer ${self.config.apiToken}`
+		}
+	  };
+
+	const sendHttpMessage = async (cmd = '') => {
+		var baseUri = `${API_BASE}/rundown/${self.config.rundownId}`
+		const res = await got.get(`${baseUri}/${cmd}`, gotOptions)
+	}
+
+
 	self.setActionDefinitions({
-		sample_action: {
-			name: 'My First Action',
-			options: [
-				{
-					id: 'num',
-					type: 'number',
-					label: 'Test',
-					default: 5,
-					min: 0,
-					max: 100,
-				},
-			],
-			callback: async (event) => {
-				console.log('Hello world!', event.options.num)
+		startRundown: {
+			name: 'Start rundown',
+			callback: async () => {
+				sendHttpMessage(`start`)
+			},
+		},
+		pauseRundown: {
+			name: 'Pause rundown',
+			callback: async () => {
+				sendHttpMessage(`pause`)
+			},
+		},
+		goToNext: {
+			name: 'Go to next cue',
+			callback: async () => {
+				sendHttpMessage(`next`)
 			},
 		},
 	})

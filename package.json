@@ -5,13 +5,15 @@
 	"scripts": {
 		"format": "prettier -w ."
 	},
+	"type": "module",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/bitfocus/companion-module-your-module-name.git"
 	},
 	"dependencies": {
-		"@companion-module/base": "~1.5.1"
+		"@companion-module/base": "~1.5.1",
+		"got": "^14.0.0"
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^1.4.1"

@@ -1,3 +1,3 @@
-## Your module
+## Rundown Studio
 
-Write some help for your users here!
+Learn more about our [API on our documentation](https://rundownstudio.app/docs/rundown/api/).

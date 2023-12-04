@@ -1,8 +1,9 @@
-const { InstanceBase, Regex, runEntrypoint, InstanceStatus } = require('@companion-module/base')
-const UpgradeScripts = require('./upgrades')
-const UpdateActions = require('./actions')
-const UpdateFeedbacks = require('./feedbacks')
-const UpdateVariableDefinitions = require('./variables')
+import { InstanceBase, runEntrypoint, InstanceStatus } from '@companion-module/base'
+import { upgrades } from './upgrades.js'
+import { UpdateActions } from './actions.js'
+import { UpdateFeedbacks } from './feedbacks.js'
+import { UpdateVariableDefinitions } from './variables.js'
+import { initPresets } from './presets.js'
 
 class ModuleInstance extends InstanceBase {
 	constructor(internal) {
@@ -17,6 +18,7 @@ class ModuleInstance extends InstanceBase {
 		this.updateActions() // export actions
 		this.updateFeedbacks() // export feedbacks
 		this.updateVariableDefinitions() // export variable definitions
+		this.updatePresets()
 	}
 	// When module gets deleted
 	async destroy() {
@@ -32,19 +34,24 @@ class ModuleInstance extends InstanceBase {
 		return [
 			{
 				type: 'textinput',
-				id: 'host',
-				label: 'Target IP',
+				id: 'apiToken',
+				label: 'API Token',
 				width: 8,
-				regex: Regex.IP,
+				tooltip: 'The API token can be taken from your Rundown Studio Dashboard'
 			},
 			{
 				type: 'textinput',
-				id: 'port',
-				label: 'Target Port',
+				id: 'rundownId',
+				label: 'Rundown ID',
 				width: 4,
-				regex: Regex.PORT,
+				tooltip: 'The ID can be found in the URL bar of your rundown'
 			},
+			
 		]
+	}
+
+	updatePresets() {
+		initPresets(this)
 	}
 
 	updateActions() {
@@ -58,6 +65,8 @@ class ModuleInstance extends InstanceBase {
 	updateVariableDefinitions() {
 		UpdateVariableDefinitions(this)
 	}
+
+	
 }
 
-runEntrypoint(ModuleInstance, UpgradeScripts)
+runEntrypoint(ModuleInstance, upgrades)

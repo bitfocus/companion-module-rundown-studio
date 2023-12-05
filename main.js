@@ -37,16 +37,15 @@ class ModuleInstance extends InstanceBase {
 				id: 'apiToken',
 				label: 'API Token',
 				width: 8,
-				tooltip: 'The API token can be taken from your Rundown Studio Dashboard'
+				tooltip: 'The API token can be taken from your Rundown Studio Dashboard',
 			},
 			{
 				type: 'textinput',
 				id: 'rundownId',
 				label: 'Rundown ID',
 				width: 4,
-				tooltip: 'The ID can be found in the URL bar of your rundown'
+				tooltip: 'The ID can be found in the URL bar of your rundown',
 			},
-			
 		]
 	}
 
@@ -65,8 +64,6 @@ class ModuleInstance extends InstanceBase {
 	updateVariableDefinitions() {
 		UpdateVariableDefinitions(this)
 	}
-
-	
 }
 
 runEntrypoint(ModuleInstance, upgrades)

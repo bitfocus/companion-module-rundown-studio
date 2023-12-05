@@ -1,6 +1,6 @@
 import { combineRgb } from '@companion-module/base'
 
-export async function UpdateFeedbacks (self) {
+export async function UpdateFeedbacks(self) {
 	self.setFeedbackDefinitions({
 		ChannelState: {
 			name: 'Example Feedback',

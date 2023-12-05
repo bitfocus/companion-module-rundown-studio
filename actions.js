@@ -2,18 +2,17 @@ import got from 'got'
 
 const API_BASE = `https://live.rundownstudio.app/api-v0`
 
-export function UpdateActions (self) {
+export function UpdateActions(self) {
 	const gotOptions = {
 		headers: {
-		  'Authorization': `Bearer ${self.config.apiToken}`
-		}
-	  };
+			Authorization: `Bearer ${self.config.apiToken}`,
+		},
+	}
 
 	const sendHttpMessage = async (cmd = '') => {
 		var baseUri = `${API_BASE}/rundown/${self.config.rundownId}`
 		const res = await got.get(`${baseUri}/${cmd}`, gotOptions)
 	}
-
 
 	self.setActionDefinitions({
 		startRundown: {

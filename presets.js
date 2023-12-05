@@ -12,7 +12,7 @@ export const initPresets = (self) => {
 			size: '18',
 			color: combineRgb(255, 255, 255),
 			bgcolor: combineRgb(0, 0, 0),
-            png64: ICONS['play'],
+			png64: ICONS['play'],
 		},
 		steps: [
 			{
@@ -35,7 +35,7 @@ export const initPresets = (self) => {
 			size: '18',
 			color: combineRgb(255, 255, 255),
 			bgcolor: combineRgb(0, 0, 0),
-            png64: ICONS['pause'],
+			png64: ICONS['pause'],
 		},
 		steps: [
 			{
@@ -58,7 +58,7 @@ export const initPresets = (self) => {
 			size: '18',
 			color: combineRgb(255, 255, 255),
 			bgcolor: combineRgb(0, 0, 0),
-            png64: ICONS['next'],
+			png64: ICONS['next'],
 		},
 		steps: [
 			{

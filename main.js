@@ -1,69 +1,89 @@
-import { InstanceBase, runEntrypoint, InstanceStatus } from '@companion-module/base'
-import { upgrades } from './upgrades.js'
-import { UpdateActions } from './actions.js'
-import { UpdateFeedbacks } from './feedbacks.js'
-import { UpdateVariableDefinitions } from './variables.js'
-import { initPresets } from './presets.js'
+// Panasonic Lumix
+const { InstanceBase, InstanceStatus, runEntrypoint } = require('@companion-module/base')
+const upgrades = require('./src/upgrades')
 
-class ModuleInstance extends InstanceBase {
+const config = require('./src/config')
+
+const actions = require('./src/actions')
+const feedbacks = require('./src/feedbacks')
+const variables = require('./src/variables')
+const presets = require('./src/presets')
+
+const api = require('./src/api')
+
+const constants = require('./src/constants')
+const icons = require('./src/icons')
+
+class rundownInstance extends InstanceBase {
 	constructor(internal) {
 		super(internal)
+
+		// Assign the methods from the listed files to this class
+		Object.assign(this, {
+			...config,
+
+			...actions,
+			...feedbacks,
+			...variables,
+			...presets,
+
+			...api,
+
+			...constants,
+			...icons,
+		})
+
+		this.socket = null //used for socketio connection
+
+		this.serverTime = null //current server time
+		this.timeOffset = 0 //offset between server time and local time
+
+		this.DATA = {}
+
+		this.INTERVAL = null //used to update timers based on latest data from the server
 	}
 
 	async init(config) {
-		this.config = config
-
-		this.updateStatus(InstanceStatus.Ok)
-
-		this.updateActions() // export actions
-		this.updateFeedbacks() // export feedbacks
-		this.updateVariableDefinitions() // export variable definitions
-		this.updatePresets()
+		this.configUpdated(config)
 	}
 	// When module gets deleted
 	async destroy() {
-		this.log('debug', 'destroy')
+		try {
+			if (this.socket) {
+				//close the socket if open
+				this.socket.disconnect()
+				this.socket = null
+			}
+
+			this.serverTime = null
+			this.timeOffset = 0
+
+			this.DATA = {}
+
+			//clear the interval
+			clearInterval(this.INTERVAL)
+			this.log('debug', 'destroy')
+		} catch (error) {
+			this.log('error', 'destroy error:', error)
+		}
 	}
 
 	async configUpdated(config) {
 		this.config = config
-	}
 
-	// Return config fields for web config
-	getConfigFields() {
-		return [
-			{
-				type: 'textinput',
-				id: 'apiToken',
-				label: 'API Token',
-				width: 8,
-				tooltip: 'The API token can be taken from your Rundown Studio Dashboard',
-			},
-			{
-				type: 'textinput',
-				id: 'rundownId',
-				label: 'Rundown ID',
-				width: 4,
-				tooltip: 'The ID can be found in the URL bar of your rundown',
-			},
-		]
-	}
+		if (this.config.advancedConfig == true) {
+			this.API_BASE_URL = this.config.apiBaseUrl
+			this.SOCKET_BASE_URL = this.config.socketBaseUrl
+			this.SOCKET_PATH = this.config.socketPath
+		}
 
-	updatePresets() {
-		initPresets(this)
-	}
+		this.initActions()
+		this.initFeedbacks()
+		this.initVariables()
+		this.initPresets()
 
-	updateActions() {
-		UpdateActions(this)
-	}
-
-	updateFeedbacks() {
-		UpdateFeedbacks(this)
-	}
-
-	updateVariableDefinitions() {
-		UpdateVariableDefinitions(this)
+		this.initConnection()
 	}
 }
 
-runEntrypoint(ModuleInstance, upgrades)
+runEntrypoint(rundownInstance, upgrades)

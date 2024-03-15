@@ -8,7 +8,7 @@ module.exports = {
 
 		presets['Start'] = {
 			type: 'button',
-			category: 'Control',
+			category: 'Transport Controls',
 			name: 'Start Rundown',
 			style: {
 				size: '18',
@@ -31,7 +31,7 @@ module.exports = {
 
 		presets['Pause'] = {
 			type: 'button',
-			category: 'Control',
+			category: 'Transport Controls',
 			name: 'Pause Rundown',
 			style: {
 				size: '18',
@@ -54,7 +54,7 @@ module.exports = {
 
 		presets['Next'] = {
 			type: 'button',
-			category: 'Control',
+			category: 'Transport Controls',
 			name: 'Go to next',
 			style: {
 				size: '18',
@@ -75,9 +75,9 @@ module.exports = {
 			feedbacks: [],
 		}
 
-		presets['Previous'] = {
+		/*presets['Previous'] = {
 			type: 'button',
-			category: 'Control',
+			category: 'Transport Controls',
 			name: 'Go to previous',
 			style: {
 				size: '18',
@@ -96,11 +96,11 @@ module.exports = {
 				},
 			],
 			feedbacks: [],
-		}
+		}*/
 
 		presets['End'] = {
 			type: 'button',
-			category: 'Control',
+			category: 'Transport Controls',
 			name: 'End Rundown',
 			style: {
 				size: '18',
@@ -118,6 +118,182 @@ module.exports = {
 					up: [],
 				},
 			],
+			feedbacks: [],
+		}
+
+		presets.rundownTitle = {
+			type: 'button',
+			category: 'Rundown Info',
+			name: 'Rundown Title',
+			style: {
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+				text: '$(rundown-studio:rundown_name)',
+			},
+			steps: [],
+			feedbacks: [],
+		}
+
+		presets.rundownStatus = {
+			type: 'button',
+			category: 'Rundown Info',
+			name: 'Rundown Status',
+			style: {
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+				text: '$(rundown-studio:rundown_status)',
+			},
+			steps: [],
+			feedbacks: [],
+		}
+
+		presets.rundownState = {
+			type: 'button',
+			category: 'Rundown Info',
+			name: 'Rundown State',
+			style: {
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+				text: '$(rundown-studio:rundown_state)',
+			},
+			steps: [],
+			feedbacks: [],
+		}
+
+		presets.rundownDate = {
+			type: 'button',
+			category: 'Rundown Info',
+			name: 'Rundown Date',
+			style: {
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+				text: '$(rundown-studio:rundown_date)',
+			},
+			steps: [],
+			feedbacks: [],
+		}
+
+		presets.currentCueTitle = {
+			type: 'button',
+			category: 'Current Cue',
+			name: 'Current Cue Title',
+			style: {
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+				text: '$(rundown-studio:currentcue_title)',
+			},
+			steps: [],
+			feedbacks: [],
+		}
+
+		presets.currentCueSubtitle = {
+			type: 'button',
+			category: 'Current Cue',
+			name: 'Current Cue Subtitle',
+			style: {
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+				text: '$(rundown-studio:currentcue_subtitle)',
+			},
+			steps: [],
+			feedbacks: [],
+		}
+
+		presets.currentCueTimeLeft = {
+			type: 'button',
+			category: 'Current Cue',
+			name: 'Current Cue Time Left',
+			style: {
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+				text: '$(rundown-studio:currentcue_timeleft_mmss)',
+			},
+			steps: [],
+			feedbacks: [
+				{
+					feedbackId: 'currentCueRunningOver',
+					options: {},
+					style: {
+						bgcolor: combineRgb(255, 0, 0),
+					},
+				},
+			],
+		}
+
+		presets.currentCueTimeElapsed = {
+			type: 'button',
+			category: 'Current Cue',
+			name: 'Current Cue Time Elapsed',
+			style: {
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+				text: '$(rundown-studio:currentcue_timeelapsed_mmss)',
+			},
+			steps: [],
+			feedbacks: [],
+		}
+
+		presets.currentCueDuration = {
+			type: 'button',
+			category: 'Current Cue',
+			name: 'Current Cue Duration',
+			style: {
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+				text: '$(rundown-studio:currentcue_duration_mmss)',
+			},
+			steps: [],
+			feedbacks: [],
+		}
+
+		presets.nextCueTitle = {
+			type: 'button',
+			category: 'Next Cue',
+			name: 'Next Cue Title',
+			style: {
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+				text: '$(rundown-studio:nextcue_title)',
+			},
+			steps: [],
+			feedbacks: [],
+		}
+
+		presets.nextCueSubtitle = {
+			type: 'button',
+			category: 'Next Cue',
+			name: 'Next Cue Subtitle',
+			style: {
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+				text: '$(rundown-studio:nextcue_subtitle)',
+			},
+			steps: [],
+			feedbacks: [],
+		}
+
+		presets.nextCueDuration = {
+			type: 'button',
+			category: 'Next Cue',
+			name: 'Next Cue Duration',
+			style: {
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+				text: '$(rundown-studio:nextcue_duration_mmss)',
+			},
+			steps: [],
 			feedbacks: [],
 		}
 

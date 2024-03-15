@@ -166,7 +166,7 @@ module.exports = {
 		let serverTimeUnix = new Date(self.serverTime).getTime()
 		let localTimeUnix = new Date().getTime()
 
-		self.timeOffset = Math.floor(serverTimeUnix - localTimeUnix)
+		self.timeOffset = Math.ceil(serverTimeUnix - localTimeUnix)
 	},
 
 	updateData: function () {
@@ -250,7 +250,7 @@ module.exports = {
 		//converts milliseconds to a time format like seconds, minutes:seconds, or hours:minutes:seconds
 		let self = this
 
-		let seconds = Math.abs(Math.floor(ms / 1000))
+		let seconds = Math.abs(Math.ceil(ms / 1000))
 		let minutes = Math.abs(Math.floor(seconds / 60))
 		let hours = Math.abs(Math.floor(minutes / 60))
 

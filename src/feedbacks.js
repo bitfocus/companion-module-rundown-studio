@@ -47,6 +47,24 @@ module.exports = {
 			},
 		}
 
+		feedbacks.currentCueRunningOver = {
+			name: 'Current cue is running over',
+			type: 'boolean',
+			description: 'Illuminate if the current cue is running over',
+			options: [],
+			defaultStyle: {
+				bgcolor: combineRgb(255, 0, 0),
+				color: combineRgb(0, 0, 0),
+			},
+			callback: async () => {
+				if (self.DATA.currentCue?.timeLeft < 0 && self.DATA.timesnap?.running == true) {
+					return true
+				} else {
+					return false
+				}
+			},
+		}
+
 		feedbacks.visualProgress = {
 			name: 'Visual progress: X or less seconds remaining',
 			type: 'boolean',

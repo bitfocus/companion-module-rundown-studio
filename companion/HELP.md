@@ -24,7 +24,6 @@ The following Actions are available:
 - Start rundown
 - Pause rundown
 - Go to next cue
-- Go to previous cue
 - End rundown
 - Add time to current cue
 - Remove time from current cue

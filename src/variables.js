@@ -4,7 +4,7 @@ module.exports = {
 		let variables = []
 
 		variables.push({ variableId: 'timeofday', name: 'Time of Day' })
-		variables.push({ variableId: 'timezone', name: 'Timezone' })
+		//variables.push({ variableId: 'timezone', name: 'Timezone' })
 
 		variables.push({ variableId: 'rundown_name', name: 'Rundown Name' })
 		variables.push({ variableId: 'rundown_date', name: 'Rundown Date' })
@@ -51,7 +51,7 @@ module.exports = {
 		let variablesObj = {}
 
 		variablesObj.timeofday = self.timeOfDay
-		variablesObj.timezone = self.timezone
+		//variablesObj.timezone = self.timezone
 
 		variablesObj.rundown_name = self.DATA.rundown?.name || ''
 		variablesObj.rundown_date = self.DATA.rundown?.startTime || ''
@@ -117,10 +117,16 @@ module.exports = {
 		}
 
 		let currentCueTimeLeftMS = self.DATA.currentCue?.timeLeft || 0
-		variablesObj.currentcue_timeleft_ms = Math.abs(currentCueTimeLeftMS)
-		variablesObj.currentcue_timeleft_ss = self.convertTime(currentCueTimeLeftMS, 'ss')
-		variablesObj.currentcue_timeleft_mmss = self.convertTime(currentCueTimeLeftMS, 'mm:ss')
-		variablesObj.currentcue_timeleft_hhmmss = self.convertTime(currentCueTimeLeftMS, 'hh:mm:ss')
+		let currentCueTimeLeftPrefix = ''
+		//if the time is counting up, add a plus sign
+		if (parseInt(currentCueTimeLeftMS) < 0) {
+			currentCueTimeLeftPrefix = '+'; // Add a plus sign to indicate that the time is counting up
+		}
+
+		variablesObj.currentcue_timeleft_ms = currentCueTimeLeftPrefix + Math.abs(currentCueTimeLeftMS)
+		variablesObj.currentcue_timeleft_ss = currentCueTimeLeftPrefix + self.convertTime(currentCueTimeLeftMS, 'ss')
+		variablesObj.currentcue_timeleft_mmss = currentCueTimeLeftPrefix + self.convertTime(currentCueTimeLeftMS, 'mm:ss')
+		variablesObj.currentcue_timeleft_hhmmss = currentCueTimeLeftPrefix + self.convertTime(currentCueTimeLeftMS, 'hh:mm:ss')
 
 		let currentCueTimeElapsedMS = self.DATA.currentCue?.timeElapsed || 0
 		variablesObj.currentcue_timeelapsed_ms = currentCueTimeElapsedMS
@@ -134,7 +140,7 @@ module.exports = {
 		variablesObj.currentcue_duration_mmss = self.convertTime(currentCueDurationMS, 'mm:ss')
 		variablesObj.currentcue_duration_hhmmss = self.convertTime(currentCueDurationMS, 'hh:mm:ss')
 
-		variablesObj.currentcue_title = self.DATA.currentCue?.title || ''
+		variablesObj.currentcue_title = self.DATA.currentCue?.title || '-'
 		variablesObj.currentcue_subtitle = self.DATA.currentCue?.subtitle || ''
 
 		let nextCueDurationMS = self.DATA.nextCue?.duration || 0
@@ -143,7 +149,7 @@ module.exports = {
 		variablesObj.nextcue_duration_mmss = self.convertTime(nextCueDurationMS, 'mm:ss')
 		variablesObj.nextcue_duration_hhmmss = self.convertTime(nextCueDurationMS, 'hh:mm:ss')
 
-		variablesObj.nextcue_title = self.DATA.nextCue?.title || ''
+		variablesObj.nextcue_title = self.DATA.nextCue?.title || '-'
 		variablesObj.nextcue_subtitle = self.DATA.nextCue?.subtitle || ''
 
 		self.setVariableValues(variablesObj)

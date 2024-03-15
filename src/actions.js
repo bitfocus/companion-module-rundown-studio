@@ -28,13 +28,13 @@ module.exports = {
 			},
 		}
 
-		actions.goToPreviousCue = {
+		/*actions.goToPreviousCue = {
 			name: 'Go to previous cue',
 			options: [],
 			callback: async () => {
 				self.sendMessage(`previous`)
 			},
-		}
+		}*/
 
 		actions.endRundown = {
 			name: 'End rundown',
@@ -44,7 +44,7 @@ module.exports = {
 			},
 		}
 
-		actions.addTime_Seconds = {
+		/*actions.addTime_Seconds = {
 			name: 'Add time to current cue',
 			options: [
 				{
@@ -76,7 +76,7 @@ module.exports = {
 			callback: async (action) => {
 				self.sendMessage(`removeTime/${action.options.seconds}`)
 			},
-		}
+		}*/
 
 		self.setActionDefinitions(actions)
 	},

@@ -40,7 +40,6 @@ The following Feedbacks are available:
 The following Variables are available:
 
 - Time of Day
-- Timezone
 - Rundown Name
 - Rundown Date
 - Rundown Planned Start Time
@@ -48,22 +47,20 @@ The following Variables are available:
 - Rundown Planned Length
 - Rundown Status
 - Rundown State
-- Current Cue Time Left (ms/ss/mmss/hhmmss)
-- Current Cue Time Elapsed (ms/ss/mmss/hhmmss)
-- Current Cue Duration (ms/ss/mmss/hhmmss)
 - Current Cue Title
 - Current Cue Subtitle
-- Next Cue Duration (ms/ss/mmss/hhmmss)
+- Current Cue Duration (ms/ss/mmss/hhmmss)
+- Current Cue Time Left (ms/ss/mmss/hhmmss)
+- Current Cue Time Elapsed (ms/ss/mmss/hhmmss)
 - Next Cue Title
 - Next Cue Subtitle
+- Next Cue Duration (ms/ss/mmss/hhmmss)
 
 ### Module Presets
 
 The following Presets are available:
 
-- Start
-- Pause
-- Next
-- Previous
-- End
+- Transport Controls
+- Rundown Info (Name, Date, etc.)
+- Current Cue/Next Cue Info
 - Visual Progress Dots (last 5 seconds)

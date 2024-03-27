@@ -58,7 +58,7 @@ module.exports = {
 				id: 'apiBaseUrl',
 				label: 'API Base URL',
 				width: 4,
-				default: 'https://live.rundownstudio.app/api-v0',
+				default: self.API_BASE_URL,
 				isVisible: (config) => config.advancedConfig === true,
 			},
 			{
@@ -66,7 +66,7 @@ module.exports = {
 				id: 'socketBaseUrl',
 				label: 'Websocket Base URL',
 				width: 4,
-				default: 'https://socket.rundownstudio.app',
+				default: self.SOCKET_BASE_URL,
 				isVisible: (config) => config.advancedConfig === true,
 			},
 			{
@@ -74,7 +74,7 @@ module.exports = {
 				id: 'socketPath',
 				label: 'Websocket Path',
 				width: 4,
-				default: '/api-v0/socket.io',
+				default: self.SOCKET_PATH,
 				isVisible: (config) => config.advancedConfig === true,
 			},
 			{

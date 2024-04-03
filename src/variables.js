@@ -120,13 +120,14 @@ module.exports = {
 		let currentCueTimeLeftPrefix = ''
 		//if the time is counting up, add a plus sign
 		if (parseInt(currentCueTimeLeftMS) < 0) {
-			currentCueTimeLeftPrefix = '+'; // Add a plus sign to indicate that the time is counting up
+			currentCueTimeLeftPrefix = '+' // Add a plus sign to indicate that the time is counting up
 		}
 
 		variablesObj.currentcue_timeleft_ms = currentCueTimeLeftPrefix + Math.abs(currentCueTimeLeftMS)
 		variablesObj.currentcue_timeleft_ss = currentCueTimeLeftPrefix + self.convertTime(currentCueTimeLeftMS, 'ss')
 		variablesObj.currentcue_timeleft_mmss = currentCueTimeLeftPrefix + self.convertTime(currentCueTimeLeftMS, 'mm:ss')
-		variablesObj.currentcue_timeleft_hhmmss = currentCueTimeLeftPrefix + self.convertTime(currentCueTimeLeftMS, 'hh:mm:ss')
+		variablesObj.currentcue_timeleft_hhmmss =
+			currentCueTimeLeftPrefix + self.convertTime(currentCueTimeLeftMS, 'hh:mm:ss')
 
 		let currentCueTimeElapsedMS = self.DATA.currentCue?.timeElapsed || 0
 		variablesObj.currentcue_timeelapsed_ms = currentCueTimeElapsedMS

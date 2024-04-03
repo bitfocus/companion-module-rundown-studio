@@ -36,13 +36,13 @@ module.exports = {
 			},
 		}*/
 
-		actions.endRundown = {
+		/*actions.endRundown = {
 			name: 'End rundown',
 			options: [],
 			callback: async () => {
 				self.sendMessage(`end`)
 			},
-		}
+		}*/
 
 		/*actions.addTime_Seconds = {
 			name: 'Add time to current cue',

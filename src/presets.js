@@ -98,7 +98,7 @@ module.exports = {
 			feedbacks: [],
 		}*/
 
-		presets['End'] = {
+		/*presets['End'] = {
 			type: 'button',
 			category: 'Transport Controls',
 			name: 'End Rundown',
@@ -119,7 +119,7 @@ module.exports = {
 				},
 			],
 			feedbacks: [],
-		}
+		}*/
 
 		presets.rundownTitle = {
 			type: 'button',

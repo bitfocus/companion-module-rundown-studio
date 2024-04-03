@@ -11,6 +11,10 @@
 		{
 			"name": "John Barker",
 			"email": "john@heretorecord.com"
+		},
+		{
+			"name": "Joseph Adams",
+			"email": "josephdadams@gmail.com"
 		}
 	],
 	"runtime": {

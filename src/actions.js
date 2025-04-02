@@ -28,13 +28,13 @@ module.exports = {
 			},
 		}
 
-		/*actions.goToPreviousCue = {
+		actions.goToPreviousCue = {
 			name: 'Go to previous cue',
 			options: [],
 			callback: async () => {
 				self.sendMessage(`previous`)
 			},
-		}*/
+		}
 
 		/*actions.endRundown = {
 			name: 'End rundown',

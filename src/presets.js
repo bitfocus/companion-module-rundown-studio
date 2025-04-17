@@ -75,7 +75,7 @@ module.exports = {
 			feedbacks: [],
 		}
 
-		/*presets['Previous'] = {
+		presets['Previous'] = {
 			type: 'button',
 			category: 'Transport Controls',
 			name: 'Go to previous',
@@ -96,7 +96,7 @@ module.exports = {
 				},
 			],
 			feedbacks: [],
-		}*/
+		}
 
 		/*presets['End'] = {
 			type: 'button',

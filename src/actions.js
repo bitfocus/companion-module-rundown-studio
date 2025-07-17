@@ -44,7 +44,7 @@ module.exports = {
 			},
 		}*/
 
-		/*actions.addTime_Seconds = {
+		actions.addTime_Seconds = {
 			name: 'Add time to current cue',
 			options: [
 				{
@@ -57,7 +57,8 @@ module.exports = {
 				},
 			],
 			callback: async (action) => {
-				self.sendMessage(`addTime/${action.options.seconds}`)
+				const amount = action.options.seconds * 1000
+				self.sendMessage(`cues/active/add?amount=${amount}`)
 			},
 		}
 
@@ -74,9 +75,10 @@ module.exports = {
 				},
 			],
 			callback: async (action) => {
-				self.sendMessage(`removeTime/${action.options.seconds}`)
+				const amount = action.options.seconds * 1000
+				self.sendMessage(`cues/active/subtract?amount=${amount}`)
 			},
-		}*/
+		}
 
 		self.setActionDefinitions(actions)
 	},

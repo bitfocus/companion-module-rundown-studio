@@ -255,6 +255,110 @@ module.exports = {
 			feedbacks: [],
 		}
 
+		presets.currentCueAddOneMin = {
+			type: 'button',
+			category: 'Current Cue',
+			name: 'Current Cue: Add 1 minute',
+			style: {
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+				text: '+1 min',
+			},
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'addTime_Seconds',
+							options: {
+								seconds: 60
+							}
+						},
+					],
+					up: [],
+				},
+			],
+			feedbacks: [],
+		}
+
+		presets.currentCueAddFiveMin = {
+			type: 'button',
+			category: 'Current Cue',
+			name: 'Current Cue: Add 5 minute',
+			style: {
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+				text: '+5 min',
+			},
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'addTime_Seconds',
+							options: {
+								seconds: 300
+							}
+						},
+					],
+					up: [],
+				},
+			],
+			feedbacks: [],
+		}
+
+		presets.currentCueRemoveOneMin = {
+			type: 'button',
+			category: 'Current Cue',
+			name: 'Current Cue: Remove 1 minute',
+			style: {
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+				text: '-1 min',
+			},
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'removeTime_Seconds',
+							options: {
+								seconds: 60
+							}
+						},
+					],
+					up: [],
+				},
+			],
+			feedbacks: [],
+		}
+
+		presets.currentCueRemoveFiveMin = {
+			type: 'button',
+			category: 'Current Cue',
+			name: 'Current Cue: Remove 5 minute',
+			style: {
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+				text: '-5 min',
+			},
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'removeTime_Seconds',
+							options: {
+								seconds: 300
+							}
+						},
+					],
+					up: [],
+				},
+			],
+			feedbacks: [],
+		}
+
 		presets.nextCueTitle = {
 			type: 'button',
 			category: 'Next Cue',

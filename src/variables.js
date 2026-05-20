@@ -65,7 +65,7 @@ module.exports = {
 		variablesObj.rundown_planned_length =
 			self.convertTime(
 				new Date(self.DATA.rundown?.endTime).getTime() - new Date(self.DATA.rundown?.startTime).getTime(),
-				'hh:mm:ss',
+				'hh:mm:ss'
 			) || ''
 
 		variablesObj.rundown_status = self.DATA.rundown?.status || ''

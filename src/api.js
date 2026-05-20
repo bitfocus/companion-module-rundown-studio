@@ -14,7 +14,7 @@ module.exports = {
 					if (self.config.verbose) {
 						self.log(
 							'debug',
-							`Connecting to Rundown Studio @ ${self.SOCKET_BASE_URL}${self.SOCKET_PATH} with Rundown ID: ${self.config.rundownId}`,
+							`Connecting to Rundown Studio @ ${self.SOCKET_BASE_URL}${self.SOCKET_PATH} with Rundown ID: ${self.config.rundownId}`
 						)
 					}
 
@@ -227,20 +227,26 @@ module.exports = {
 		}
 	},
 
-	sendMessage: async function (cmd) {
+	sendMessage: async function (cmd, method = 'GET', body = null) {
 		let self = this
 
 		let API_BASE = `${self.API_BASE_URL}`
 		let baseUri = `${API_BASE}/rundown/${self.config.rundownId}`
 
 		const options = {
+			method,
 			headers: {
 				Authorization: `Bearer ${self.config.apiToken}`,
 			},
 		}
 
+		if (body !== null) {
+			options.headers['Content-Type'] = 'application/json'
+			options.body = JSON.stringify(body)
+		}
+
 		if (self.config.verbose) {
-			self.log('debug', `Sending command: ${cmd} to ${baseUri}`)
+			self.log('debug', `Sending ${method} ${cmd} to ${baseUri}${body ? ' with body ' + JSON.stringify(body) : ''}`)
 		}
 
 		const res = await fetch(`${baseUri}/${cmd}`, options)
@@ -259,7 +265,9 @@ module.exports = {
 		} else if (format === 'mm:ss') {
 			return `${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
 		} else if (format === 'hh:mm:ss') {
-			return `${String(hours).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
+			return `${String(hours).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}:${String(
+				seconds % 60
+			).padStart(2, '0')}`
 		} else {
 			return ms //some unsupported format
 		}

@@ -26,6 +26,10 @@ The following Actions are available:
 - Go to next cue
 - Go to previous cue
 - Add/Remove time from active cue
+- Output Message: Show
+- Output Message: Hide
+- Output Message: Toggle visibility
+- Output Message: Set (update text, color, bold, underline, and/or visibility)
 
 ### Module Feedbacks
 
@@ -63,3 +67,4 @@ The following Presets are available:
 - Rundown Info (Name, Date, etc.)
 - Current Cue/Next Cue Info
 - Visual Progress Dots (last 5 seconds)
+- Output Message (Show, Hide, Toggle)

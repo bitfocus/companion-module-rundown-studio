@@ -271,8 +271,8 @@ module.exports = {
 						{
 							actionId: 'addTime_Seconds',
 							options: {
-								seconds: 60
-							}
+								seconds: 60,
+							},
 						},
 					],
 					up: [],
@@ -297,8 +297,8 @@ module.exports = {
 						{
 							actionId: 'addTime_Seconds',
 							options: {
-								seconds: 300
-							}
+								seconds: 300,
+							},
 						},
 					],
 					up: [],
@@ -323,8 +323,8 @@ module.exports = {
 						{
 							actionId: 'removeTime_Seconds',
 							options: {
-								seconds: 60
-							}
+								seconds: 60,
+							},
 						},
 					],
 					up: [],
@@ -349,8 +349,8 @@ module.exports = {
 						{
 							actionId: 'removeTime_Seconds',
 							options: {
-								seconds: 300
-							}
+								seconds: 300,
+							},
 						},
 					],
 					up: [],
@@ -398,6 +398,75 @@ module.exports = {
 				text: '$(rundown-studio:nextcue_duration_mmss)',
 			},
 			steps: [],
+			feedbacks: [],
+		}
+
+		presets.outputMessageShow = {
+			type: 'button',
+			category: 'Output Message',
+			name: 'Show output message',
+			style: {
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+				text: 'Show\\nMsg',
+			},
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'showOutputMessage',
+						},
+					],
+					up: [],
+				},
+			],
+			feedbacks: [],
+		}
+
+		presets.outputMessageHide = {
+			type: 'button',
+			category: 'Output Message',
+			name: 'Hide output message',
+			style: {
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+				text: 'Hide\\nMsg',
+			},
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'hideOutputMessage',
+						},
+					],
+					up: [],
+				},
+			],
+			feedbacks: [],
+		}
+
+		presets.outputMessageToggle = {
+			type: 'button',
+			category: 'Output Message',
+			name: 'Toggle output message',
+			style: {
+				size: '14',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+				text: 'Toggle\\nMsg',
+			},
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'toggleOutputMessage',
+						},
+					],
+					up: [],
+				},
+			],
 			feedbacks: [],
 		}
 

@@ -8,7 +8,7 @@ module.exports = {
 				id: 'info',
 				label: 'Information',
 				width: 12,
-				value: `This module allows you to control Rundown Studio - The rundown tool for collaborative show planning, cueing, and directing. To use this module, you will need to create an API token in your Rundown Studio Dashboard. More instructions are available here: <a target='_blank' href='https://rundownstudio.app/docs/rundown/api/'>https://rundownstudio.app/docs/rundown/api/</a>`,
+				value: `This module allows you to control Rundown Studio - The rundown tool for collaborative show planning, cueing, and directing. To use this module, you will need to create an API token in your Rundown Studio Dashboard. This module uses the Rundown Studio API v1. More instructions are available here: <a target='_blank' href='https://rundownstudio.app/docs/'>https://rundownstudio.app/docs/</a>`,
 			},
 			{
 				type: 'static-text',
@@ -59,22 +59,8 @@ module.exports = {
 				label: 'API Base URL',
 				width: 4,
 				default: self.API_BASE_URL,
-				isVisible: (config) => config.advancedConfig === true,
-			},
-			{
-				type: 'textinput',
-				id: 'socketBaseUrl',
-				label: 'Websocket Base URL',
-				width: 4,
-				default: self.SOCKET_BASE_URL,
-				isVisible: (config) => config.advancedConfig === true,
-			},
-			{
-				type: 'textinput',
-				id: 'socketPath',
-				label: 'Websocket Path',
-				width: 4,
-				default: self.SOCKET_PATH,
+				tooltip:
+					'Serves both the REST endpoints and the live event stream. Change it to point at another environment, e.g. https://api-v1.rundownstudio.app',
 				isVisible: (config) => config.advancedConfig === true,
 			},
 			{

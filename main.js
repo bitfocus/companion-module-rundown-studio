@@ -33,7 +33,8 @@ class rundownInstance extends InstanceBase {
 			...icons,
 		})
 
-		this.socket = null //used for socketio connection
+		this.streamController = null //aborts the in-flight SSE stream
+		this.RECONNECT_TIMER = null
 
 		this.serverTime = null //current server time
 		this.timeOffset = 0 //offset between server time and local time
@@ -49,11 +50,7 @@ class rundownInstance extends InstanceBase {
 	// When module gets deleted
 	async destroy() {
 		try {
-			if (this.socket) {
-				//close the socket if open
-				this.socket.disconnect()
-				this.socket = null
-			}
+			this.stopStream()
 
 			this.serverTime = null
 			this.timeOffset = 0
@@ -71,10 +68,12 @@ class rundownInstance extends InstanceBase {
 	async configUpdated(config) {
 		this.config = config
 
+		// Reset to the packaged default first, so turning advanced config back off
+		// doesn't strand a previously-entered host.
+		this.API_BASE_URL = constants.API_BASE_URL
+
 		if (this.config.advancedConfig == true) {
-			this.API_BASE_URL = this.config.apiBaseUrl
-			this.SOCKET_BASE_URL = this.config.socketBaseUrl
-			this.SOCKET_PATH = this.config.socketPath
+			if (this.config.apiBaseUrl) this.API_BASE_URL = this.config.apiBaseUrl
 		}
 
 		this.initActions()

@@ -1,151 +1,254 @@
 const { InstanceStatus } = require('@companion-module/base')
 
-const io = require('socket.io-client')
+// The v1 stream we need: full rundown bodies (for the rundown_* variables) plus
+// cue change envelopes. `status` always rides along and can't be unsubscribed.
+const EVENTS_SUBSCRIPTION = 'rundown:fat,cue:thin'
+
+const RECONNECT_DELAY_MS = 5000
 
 module.exports = {
 	initConnection: function () {
 		let self = this
 
-		if (self.config.apiToken && self.config.rundownId) {
-			if (self.config.apiToken !== '' && self.config.rundownId !== '') {
-				try {
-					self.updateStatus(InstanceStatus.Connecting)
+		self.stopStream()
 
-					if (self.config.verbose) {
-						self.log(
-							'debug',
-							`Connecting to Rundown Studio @ ${self.SOCKET_BASE_URL}${self.SOCKET_PATH} with Rundown ID: ${self.config.rundownId}`
-						)
-					}
+		if (!self.config.apiToken || !self.config.rundownId) {
+			self.updateStatus(InstanceStatus.BadConfig, 'Set your API Token and Rundown ID in the module config.')
+			return
+		}
 
-					self.socket = io(self.SOCKET_BASE_URL, {
-						path: self.SOCKET_PATH,
-						auth: { apiToken: self.config.apiToken, rundownId: self.config.rundownId },
-					})
+		self.updateStatus(InstanceStatus.Connecting)
+		self.startStream()
+		self.startInterval()
+	},
 
-					self.socket.on('connect', () => {
-						self.updateStatus(InstanceStatus.Ok, 'Connected to Rundown Server.')
-					})
+	apiUrl: function (path) {
+		let self = this
+		return `${String(self.API_BASE_URL).replace(/\/+$/, '')}/rundowns/${self.config.rundownId}${path}`
+	},
 
-					self.socket.on('connect_error', (error) => {
-						self.socket.disconnect()
+	startStream: async function () {
+		let self = this
 
-						let errorString = String(error)
+		const controller = new AbortController()
+		self.streamController = controller
 
-						if (errorString.includes("Rundown doesn't exist")) {
-							self.updateStatus(InstanceStatus.ConnectionFailure, 'Invalid Rundown ID.')
-							self.log('error', 'Invalid Rundown ID. Double check your module configuration.')
-						} else {
-							self.updateStatus(InstanceStatus.ConnectionFailure, 'See log for more details.')
-							self.log('error', 'Connection Error:' + String(error))
-						}
-					})
+		const url = self.apiUrl(`/events?events=${encodeURIComponent(EVENTS_SUBSCRIPTION)}`)
 
-					self.socket.on('disconnect', (reason) => {
-						//self.updateStatus(InstanceStatus.ConnectionFailure, 'Disconnected from Rundown Server. See log for more details.')
-						//self.log('error', `Disconnected from Rundown Server: ${reason}`);
-					})
+		if (self.config.verbose) {
+			self.log('debug', `Opening SSE stream: ${url}`)
+		}
 
-					self.socket.on('serverTime', (data) => {
-						//The server time sent on a 30s interval, used to sync clocks
-						self.serverTime = data
+		try {
+			const res = await fetch(url, {
+				headers: {
+					Authorization: `Bearer ${self.config.apiToken}`,
+					Accept: 'text/event-stream',
+				},
+				signal: controller.signal,
+			})
 
-						self.updateServerTime()
-					})
-
-					self.socket.on('runndown', (data) => {
-						//When the rundown itself changes
-						/*
-							{
-								"id": "4LdiPByHcbVZHxjovBQB",
-								"name": "Example Rundown",
-								"startTime": "2023-11-23T09:45:00.000Z",
-								"endTime": "2023-04-01T09:45:00.000Z",
-								"status": "approved",
-								"createdAt": "2023-10-23T18:51:22.653Z",
-								"updatedAt": "2024-01-06T12:55:26.021Z"
-							}
-						*/
-
-						self.DATA.rundown = data
-						console.log('rundown', data)
-						self.updateData()
-					})
-
-					self.socket.on('currentCue', (data) => {
-						//When the current cue changes
-						/*
-							{
-								"id": "ArWdCNok6nS9DjhrQaoD",
-								"type": "cue",
-								"title": "Welcome",
-								"subtitle": "",
-								"duration": 180000,
-								"backgroundColor": "#450a0a",
-								"locked": false,
-								"createdAt": "2023-10-23T18:51:23.326Z",
-								"updatedAt": "2023-10-23T18:51:23.326Z"
-							}
-						*/
-
-						self.DATA.currentCue = data
-						console.log('currentCue', data)
-						self.updateData()
-					})
-
-					self.socket.on('nextCue', (data) => {
-						//When the next cue changes
-						/*
-							{
-								"id": "dkSnrutcDgp5Tq5WGz6P",
-								"type": "cue",
-								"title": "Keynote",
-								"subtitle": "",
-								"duration": 300000,
-								"backgroundColor": "#450a0a",
-								"locked": false,
-								"createdAt": "2023-10-23T18:51:23.326Z",
-								"updatedAt": "2023-10-23T18:51:23.326Z"
-							}
-						*/
-
-						self.DATA.nextCue = data
-						console.log('nextCue', data)
-						self.updateData()
-					})
-
-					self.socket.on('timesnap', (data) => {
-						//For all timing-related changes like start, stop, next, and previous
-						/*
-							{
-								"lastStop": 1704546261727,
-								"kickoff": 1704546261727,
-								"running": true,
-								"cueId": "EF3Rgj4A0IwXV42VP0Ed",
-								"deadline": 1704547171727
-							}
-						*/
-
-						/* Note: The timesnap event contains timestamps in milliseconds since UNIX epoch.
-						The duration is derived from deadline - kickoff = duration.
-						The remaining time can be calculated by deadline - now = remaining. */
-
-						self.DATA.timesnap = data
-						console.log('timesnap', data)
-						self.updateData()
-					})
-
-					self.startInterval()
-				} catch (error) {
-					self.updateStatus(InstanceStatus.ConnectionFailure, 'Connection Failure. See Log.')
-					self.log('error', 'Connection Failure:' + error)
-				}
-			} else {
-				self.updateStatus(InstanceStatus.ConnectionFailure)
-				self.log('error', 'Rundown ID and API Token must be set in the module configuration.')
+			if (!res.ok) {
+				self.handleHttpError(res, await self.readProblem(res))
+				self.scheduleReconnect()
+				return
 			}
-		} else {
-			//self.updateStatus(InstanceStatus.UnknownWarning, 'Set your API Token and Rundown ID in the module config.');
+
+			self.updateStatus(InstanceStatus.Ok, 'Connected to Rundown Studio.')
+
+			// The stream only sends a `rundown` frame when the rundown *changes*, so
+			// fetch it once up front to seed the rundown_* variables.
+			self.fetchRundown()
+
+			await self.consumeStream(res, controller)
+
+			// The server closed the stream (lifetime cycle, auth change, or network
+			// drop). Reconnect unless we're the ones who tore it down.
+			if (!controller.signal.aborted) {
+				self.scheduleReconnect()
+			}
+		} catch (error) {
+			if (controller.signal.aborted) return
+
+			self.updateStatus(InstanceStatus.ConnectionFailure, 'See log for more details.')
+			self.log('error', `Connection error: ${String(error)}`)
+			self.scheduleReconnect()
+		}
+	},
+
+	// Parses the text/event-stream framing off the response body. We hand-roll it
+	// rather than use EventSource: the module targets the node18 runtime (no global
+	// EventSource), and EventSource can neither send an Authorization header nor
+	// resume after a server-side close.
+	consumeStream: async function (res, controller) {
+		let self = this
+
+		const decoder = new TextDecoder()
+		let buffer = ''
+
+		for await (const chunk of res.body) {
+			if (controller.signal.aborted) return
+
+			buffer += decoder.decode(chunk, { stream: true })
+
+			// Frames are separated by a blank line; \r\n\r\n is legal too.
+			let boundary
+			while ((boundary = buffer.search(/\r?\n\r?\n/)) !== -1) {
+				const frame = buffer.slice(0, boundary)
+				buffer = buffer.slice(boundary + buffer.match(/\r?\n\r?\n/)[0].length)
+				self.handleFrame(frame)
+			}
+		}
+	},
+
+	handleFrame: function (frame) {
+		let self = this
+
+		let event = 'message'
+		const dataLines = []
+
+		for (const line of frame.split(/\r?\n/)) {
+			if (line.startsWith(':')) continue // comment, e.g. the ": connected" preamble
+			if (line.startsWith('event:')) {
+				event = line.slice(6).trim()
+			} else if (line.startsWith('data:')) {
+				dataLines.push(line.slice(5).trimStart())
+			}
+		}
+
+		if (dataLines.length === 0) return
+
+		let data
+		try {
+			data = JSON.parse(dataLines.join('\n'))
+		} catch (error) {
+			self.log('warn', `Ignoring unparsable ${event} frame: ${String(error)}`)
+			return
+		}
+
+		if (self.config.verbose && event !== 'heartbeat') {
+			self.log('debug', `SSE ${event}: ${JSON.stringify(data)}`)
+		}
+
+		switch (event) {
+			case 'ready':
+				self.updateStatus(InstanceStatus.Ok, 'Connected to Rundown Studio.')
+				break
+
+			case 'status':
+				// The spine of the channel: state, active cue and next cue in one shot.
+				self.DATA.status = data
+				self.setServerTime(data.server_time)
+				self.updateData()
+				break
+
+			case 'rundown':
+				if (data.change === 'removed') {
+					delete self.DATA.rundown
+				} else if (data.rundown) {
+					self.DATA.rundown = data.rundown
+				}
+				self.updateData()
+				break
+
+			case 'cue':
+				// Subscribed thin: the active cue's title and duration already arrive on
+				// every status frame, so a cue edit only needs a status refresh.
+				self.refreshStatus()
+				break
+
+			case 'heartbeat':
+				self.lastHeartbeat = Number(data.at) || null
+				break
+
+			case 'disconnect':
+				// The server is closing the stream. `lifetime` is routine hygiene;
+				// an auth reason needs the user to fix the token.
+				if (data.reason === 'lifetime') {
+					self.log('debug', 'Server cycled the stream (lifetime), reconnecting.')
+				} else {
+					self.updateStatus(InstanceStatus.ConnectionFailure, 'API token is no longer valid.')
+					self.log('error', `Server closed the stream: ${data.reason}. Check your API token.`)
+				}
+				break
+		}
+	},
+
+	scheduleReconnect: function () {
+		let self = this
+
+		clearTimeout(self.RECONNECT_TIMER)
+		self.RECONNECT_TIMER = setTimeout(() => {
+			if (self.config.apiToken && self.config.rundownId) {
+				self.startStream()
+			}
+		}, RECONNECT_DELAY_MS)
+	},
+
+	stopStream: function () {
+		let self = this
+
+		clearTimeout(self.RECONNECT_TIMER)
+		self.RECONNECT_TIMER = null
+
+		if (self.streamController) {
+			self.streamController.abort()
+			self.streamController = null
+		}
+	},
+
+	// Pulls a fresh status snapshot outside the stream (used after a thin cue
+	// change).
+	refreshStatus: async function () {
+		let self = this
+
+		try {
+			const res = await fetch(self.apiUrl('/status'), {
+				headers: { Authorization: `Bearer ${self.config.apiToken}` },
+			})
+
+			if (!res.ok) {
+				self.handleHttpError(res, await self.readProblem(res))
+				return
+			}
+
+			const body = await res.json()
+			if (body?.data) {
+				self.DATA.status = body.data
+				self.setServerTime(body.data.server_time)
+				self.updateData()
+			}
+		} catch (error) {
+			self.log('warn', `Status refresh failed: ${String(error)}`)
+		}
+	},
+
+	// Seeds self.DATA.rundown (name, status, planned times). The SSE `rundown`
+	// frame is a change envelope, so without this the rundown_* variables stay
+	// empty until someone happens to edit the rundown.
+	fetchRundown: async function () {
+		let self = this
+
+		try {
+			const res = await fetch(self.apiUrl(''), {
+				headers: { Authorization: `Bearer ${self.config.apiToken}` },
+			})
+
+			if (!res.ok) {
+				// Only the rundown_* variables go stale; the stream still drives show
+				// control, so warn rather than fault the whole instance.
+				const detail = await self.readProblem(res)
+				self.log('warn', `Could not fetch rundown details (HTTP ${res.status}).${detail ? ' ' + detail : ''}`)
+				return
+			}
+
+			const body = await res.json()
+			if (body?.data) {
+				self.DATA.rundown = body.data
+				self.updateData()
+			}
+		} catch (error) {
+			self.log('warn', `Rundown fetch failed: ${String(error)}`)
 		}
 	},
 
@@ -156,17 +259,16 @@ module.exports = {
 
 		self.INTERVAL = setInterval(() => {
 			self.updateData()
-		}, self.config.updateInterval)
+		}, self.config.updateInterval || 100)
 	},
 
-	updateServerTime: function () {
-		//updates the offset time between the server and the local time based on the difference between the two
+	setServerTime: function (serverTimeMs) {
 		let self = this
 
-		let serverTimeUnix = new Date(self.serverTime).getTime()
-		let localTimeUnix = new Date().getTime()
+		if (!Number.isFinite(serverTimeMs)) return
 
-		self.timeOffset = Math.ceil(serverTimeUnix - localTimeUnix)
+		self.serverTimeUnix = serverTimeMs
+		self.timeOffset = Math.ceil(serverTimeMs - Date.now())
 	},
 
 	updateData: function () {
@@ -174,64 +276,84 @@ module.exports = {
 		let self = this
 
 		try {
-			let currentTime = new Date().getTime() //epoch time in milliseconds
-
 			//calculate the current server time using our offset
-			self.serverTimeUnix = currentTime + self.timeOffset
-
-			//make a new date variable with the servertime
+			self.serverTimeUnix = Date.now() + self.timeOffset
 			self.serverTime = new Date(self.serverTimeUnix)
 
-			//update the time of day and timezone
 			self.timeOfDay = self.serverTime.toLocaleTimeString()
 			self.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
-			let currentCue = self.DATA.currentCue
-			let timeSnap = self.DATA.timesnap
+			const status = self.DATA.status
+			const activeCue = status?.active_cue
 
-			if (currentCue && timeSnap) {
-				//compare that the timeSnap cueId matches the currentCue id
-				if (timeSnap.cueId === currentCue.id) {
-					//calculate time left
-					if (timeSnap.running) {
-						//time left is deadline minus current time
-						currentCue.timeLeft = timeSnap.deadline - self.serverTimeUnix
+			if (activeCue) {
+				// Per the v1 docs: running counts against the wall clock, paused freezes
+				// at paused_at.
+				const anchor = status.state === 'paused' && activeCue.paused_at ? activeCue.paused_at : self.serverTimeUnix
 
-						//calculate time elapsed - kickoff minus current time
-						currentCue.timeElapsed = self.serverTimeUnix - timeSnap.kickoff
-					} else {
-						//time left is current time minus timesnap kickoff
-						currentCue.timeLeft = timeSnap.deadline - timeSnap.lastStop
-
-						//time elapsed is last stop minus kickoff
-						currentCue.timeElapsed = timeSnap.lastStop - timeSnap.kickoff
-					}
-				} else {
-					//some other condition, so just return, we will be right back to this function in 100ms anyway
-					return
-				}
-			}
-
-			//check if the nextCue id is the same as the currentCue id, which would mean we are on the last cue
-			//delete nextCue if so
-			if (self.DATA.nextCue?.id === self.DATA.currentCue?.id) {
-				delete self.DATA.nextCue
+				activeCue.timeLeft = activeCue.started_at + activeCue.duration_ms - anchor
+				activeCue.timeElapsed = anchor - activeCue.started_at
 			}
 
 			self.checkFeedbacks()
 			self.checkVariables()
 		} catch (error) {
-			console.log(error)
-			self.log('error', 'updateData error:', String(error))
+			self.log('error', `updateData error: ${String(error)}`)
 			clearInterval(self.INTERVAL)
 		}
 	},
 
-	sendMessage: async function (cmd, method = 'GET', body = null) {
+	readProblem: async function (res) {
+		// Errors are RFC 9457 problem+json; `detail` states the corrective action.
+		try {
+			const body = await res.json()
+			return body?.detail || body?.title || null
+		} catch {
+			return null
+		}
+	},
+
+	handleHttpError: function (res, detail) {
 		let self = this
 
-		let API_BASE = `${self.API_BASE_URL}`
-		let baseUri = `${API_BASE}/rundown/${self.config.rundownId}`
+		const suffix = detail ? ` ${detail}` : ''
+
+		switch (res.status) {
+			case 401:
+				self.updateStatus(InstanceStatus.ConnectionFailure, 'Invalid API token.')
+				self.log('error', `Authentication failed. Check your API token.${suffix}`)
+				break
+			case 403:
+				self.updateStatus(InstanceStatus.ConnectionFailure, 'Token lacks permission.')
+				self.log('error', `Your API token lacks permission for this action.${suffix}`)
+				break
+			case 404:
+				self.updateStatus(InstanceStatus.ConnectionFailure, 'Invalid Rundown ID.')
+				self.log('error', `Rundown not found. Double check your Rundown ID.${suffix}`)
+				break
+			case 409:
+				// e.g. runner.not_running when acting on a stopped show — not a
+				// connection problem, so leave the instance status alone.
+				self.log('warn', `Action rejected: the show is not running.${suffix}`)
+				break
+			case 429:
+				self.log('warn', `Rate limited by Rundown Studio.${suffix}`)
+				break
+			default:
+				self.updateStatus(InstanceStatus.ConnectionFailure, 'See log for more details.')
+				self.log('error', `Request failed (HTTP ${res.status}).${suffix}`)
+		}
+	},
+
+	sendMessage: async function (cmd, method = 'POST', body = null) {
+		let self = this
+
+		if (!self.config.apiToken || !self.config.rundownId) {
+			self.log('error', 'Rundown ID and API Token must be set in the module configuration.')
+			return null
+		}
+
+		const url = self.apiUrl(`/${cmd}`)
 
 		const options = {
 			method,
@@ -246,10 +368,32 @@ module.exports = {
 		}
 
 		if (self.config.verbose) {
-			self.log('debug', `Sending ${method} ${cmd} to ${baseUri}${body ? ' with body ' + JSON.stringify(body) : ''}`)
+			self.log('debug', `Sending ${method} ${url}${body ? ' with body ' + JSON.stringify(body) : ''}`)
 		}
 
-		const res = await fetch(`${baseUri}/${cmd}`, options)
+		try {
+			const res = await fetch(url, options)
+
+			if (!res.ok) {
+				self.handleHttpError(res, await self.readProblem(res))
+				return null
+			}
+
+			const json = await res.json()
+
+			// Control verbs answer with the post-verb status snapshot, so the UI
+			// reflects the action without waiting for the next stream frame.
+			if (json?.data && typeof json.data.state === 'string') {
+				self.DATA.status = json.data
+				self.setServerTime(json.data.server_time)
+				self.updateData()
+			}
+
+			return json
+		} catch (error) {
+			self.log('error', `Request failed: ${String(error)}`)
+			return null
+		}
 	},
 
 	convertTime: function (ms, format) {
@@ -266,7 +410,7 @@ module.exports = {
 			return `${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
 		} else if (format === 'hh:mm:ss') {
 			return `${String(hours).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}:${String(
-				seconds % 60
+				seconds % 60,
 			).padStart(2, '0')}`
 		} else {
 			return ms //some unsupported format

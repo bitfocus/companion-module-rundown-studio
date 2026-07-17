@@ -9,7 +9,7 @@ module.exports = {
 		feedbacks.rundownState = {
 			name: 'Rundown State',
 			type: 'boolean',
-			description: 'Rundown State is Running/Paused/Ended',
+			description: 'Rundown State is Running/Paused/Stopped',
 			options: [
 				{
 					type: 'dropdown',
@@ -19,7 +19,7 @@ module.exports = {
 					choices: [
 						{ id: 'running', label: 'Running' },
 						{ id: 'paused', label: 'Paused' },
-						{ id: 'ended', label: 'Ended' },
+						{ id: 'stopped', label: 'Stopped' },
 					],
 				},
 			],
@@ -28,22 +28,7 @@ module.exports = {
 				color: combineRgb(0, 0, 0),
 			},
 			callback: async (feedback) => {
-				let state = ''
-				if (self.DATA.timesnap?.running == true) {
-					state = 'running'
-				} else {
-					if (self.DATA.timesnap?.ended == true) {
-						state = 'ended'
-					} else {
-						state = 'paused'
-					}
-				}
-
-				if (state === feedback.options.state) {
-					return true
-				} else {
-					return false
-				}
+				return self.DATA.status?.state === feedback.options.state
 			},
 		}
 
@@ -57,11 +42,7 @@ module.exports = {
 				color: combineRgb(0, 0, 0),
 			},
 			callback: async () => {
-				if (self.DATA.currentCue?.timeLeft < 0 && self.DATA.timesnap?.running == true) {
-					return true
-				} else {
-					return false
-				}
+				return self.DATA.status?.active_cue?.timeLeft < 0 && self.DATA.status?.state === 'running'
 			},
 		}
 
@@ -86,9 +67,10 @@ module.exports = {
 			callback: async (feedback) => {
 				let seconds = feedback.options.seconds
 				let ms = seconds * 1000
-				let secondsLeft = Math.floor(self.DATA.currentCue?.timeLeft / 1000)
+				let timeLeft = self.DATA.status?.active_cue?.timeLeft
+				let secondsLeft = Math.floor(timeLeft / 1000)
 
-				if (self.DATA.currentCue?.timeLeft < 0 && self.DATA.timesnap?.running == true) {
+				if (timeLeft < 0 && self.DATA.status?.state === 'running') {
 					//if we have run out of time, let's flash the button on even seconds, but only if the cue is stil running
 					if (Math.floor(Date.now() / 1000) % 2 === 0) {
 						return false
@@ -96,7 +78,7 @@ module.exports = {
 						return true
 					}
 				} else {
-					if (self.DATA.currentCue?.timeLeft <= ms) {
+					if (timeLeft <= ms) {
 						//if the secondsLeft equals the seconds, illuminate the button
 						if (secondsLeft == seconds - 1) {
 							return true

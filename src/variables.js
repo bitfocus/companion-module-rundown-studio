@@ -32,15 +32,11 @@ module.exports = {
 		variables.push({ variableId: 'currentcue_duration_hhmmss', name: 'Current Cue Duration (hh:mm:ss)' })
 
 		variables.push({ variableId: 'currentcue_title', name: 'Current Cue Title' })
-		variables.push({ variableId: 'currentcue_subtitle', name: 'Current Cue Subtitle' })
 
-		variables.push({ variableId: 'nextcue_duration_ms', name: 'Next Cue Duration (ms)' })
-		variables.push({ variableId: 'nextcue_duration_ss', name: 'Next Cue Duration (ss)' })
-		variables.push({ variableId: 'nextcue_duration_mmss', name: 'Next Cue Duration (mm:ss)' })
-		variables.push({ variableId: 'nextcue_duration_hhmmss', name: 'Next Cue Duration (hh:mm:ss)' })
-
+		// The v1 status snapshot carries only id and title for the next cue, and no
+		// subtitle for either — nextcue_duration_*, currentcue_subtitle and
+		// nextcue_subtitle have no source and are gone.
 		variables.push({ variableId: 'nextcue_title', name: 'Next Cue Title' })
-		variables.push({ variableId: 'nextcue_subtitle', name: 'Next Cue Subtitle' })
 
 		self.setVariableDefinitions(variables)
 	},
@@ -53,20 +49,18 @@ module.exports = {
 		variablesObj.timeofday = self.timeOfDay
 		//variablesObj.timezone = self.timezone
 
-		variablesObj.rundown_name = self.DATA.rundown?.name || ''
-		variablesObj.rundown_date = self.DATA.rundown?.startTime || ''
-		if (variablesObj.rundown_date !== '') {
-			//make it more human readable
-			variablesObj.rundown_date = new Date(variablesObj.rundown_date).toLocaleDateString()
-		}
+		// v1 renames `name` to `title`, and start_time/end_time are epoch ms
+		// (either may be null for open-ended rundowns).
+		variablesObj.rundown_name = self.DATA.rundown?.title || ''
 
-		variablesObj.rundown_planned_starttime = new Date(self.DATA.rundown?.startTime).toLocaleTimeString() || ''
-		variablesObj.rundown_planned_endtime = new Date(self.DATA.rundown?.endTime).toLocaleTimeString() || ''
+		const startTime = self.DATA.rundown?.start_time ?? null
+		const endTime = self.DATA.rundown?.end_time ?? null
+
+		variablesObj.rundown_date = startTime !== null ? new Date(startTime).toLocaleDateString() : ''
+		variablesObj.rundown_planned_starttime = startTime !== null ? new Date(startTime).toLocaleTimeString() : ''
+		variablesObj.rundown_planned_endtime = endTime !== null ? new Date(endTime).toLocaleTimeString() : ''
 		variablesObj.rundown_planned_length =
-			self.convertTime(
-				new Date(self.DATA.rundown?.endTime).getTime() - new Date(self.DATA.rundown?.startTime).getTime(),
-				'hh:mm:ss'
-			) || ''
+			startTime !== null && endTime !== null ? self.convertTime(endTime - startTime, 'hh:mm:ss') : ''
 
 		variablesObj.rundown_status = self.DATA.rundown?.status || ''
 		//make the status more human readable
@@ -91,32 +85,25 @@ module.exports = {
 				break
 		}
 
-		let state = ''
-		if (self.DATA.timesnap?.running == true) {
-			state = 'running'
-		} else {
-			if (self.DATA.timesnap?.ended == true) {
-				state = 'ended'
-			} else {
-				state = 'paused'
-			}
-		}
-
-		variablesObj.rundown_state = state
-		//make the state more human readable
-		switch (variablesObj.rundown_state) {
+		//v1 states are running/paused/stopped; `stopped` covers pre-show and post-show
+		switch (self.DATA.status?.state) {
 			case 'running':
 				variablesObj.rundown_state = 'Running'
 				break
 			case 'paused':
 				variablesObj.rundown_state = 'Paused'
 				break
-			case 'ended':
-				variablesObj.rundown_state = 'Ended'
+			case 'stopped':
+				variablesObj.rundown_state = 'Stopped'
 				break
+			default:
+				variablesObj.rundown_state = ''
 		}
 
-		let currentCueTimeLeftMS = self.DATA.currentCue?.timeLeft || 0
+		const currentCue = self.DATA.status?.active_cue
+		const nextCue = self.DATA.status?.next_cue
+
+		let currentCueTimeLeftMS = currentCue?.timeLeft || 0
 		let currentCueTimeLeftPrefix = ''
 		//if the time is counting up, add a plus sign
 		if (parseInt(currentCueTimeLeftMS) < 0) {
@@ -129,29 +116,21 @@ module.exports = {
 		variablesObj.currentcue_timeleft_hhmmss =
 			currentCueTimeLeftPrefix + self.convertTime(currentCueTimeLeftMS, 'hh:mm:ss')
 
-		let currentCueTimeElapsedMS = self.DATA.currentCue?.timeElapsed || 0
+		let currentCueTimeElapsedMS = currentCue?.timeElapsed || 0
 		variablesObj.currentcue_timeelapsed_ms = currentCueTimeElapsedMS
 		variablesObj.currentcue_timeelapsed_ss = self.convertTime(currentCueTimeElapsedMS, 'ss')
 		variablesObj.currentcue_timeelapsed_mmss = self.convertTime(currentCueTimeElapsedMS, 'mm:ss')
 		variablesObj.currentcue_timeelapsed_hhmmss = self.convertTime(currentCueTimeElapsedMS, 'hh:mm:ss')
 
-		let currentCueDurationMS = self.DATA.currentCue?.duration || 0
+		let currentCueDurationMS = currentCue?.duration_ms || 0
 		variablesObj.currentcue_duration_ms = currentCueDurationMS
 		variablesObj.currentcue_duration_ss = self.convertTime(currentCueDurationMS, 'ss')
 		variablesObj.currentcue_duration_mmss = self.convertTime(currentCueDurationMS, 'mm:ss')
 		variablesObj.currentcue_duration_hhmmss = self.convertTime(currentCueDurationMS, 'hh:mm:ss')
 
-		variablesObj.currentcue_title = self.DATA.currentCue?.title || '-'
-		variablesObj.currentcue_subtitle = self.DATA.currentCue?.subtitle || ''
+		variablesObj.currentcue_title = currentCue?.title || '-'
 
-		let nextCueDurationMS = self.DATA.nextCue?.duration || 0
-		variablesObj.nextcue_duration_ms = nextCueDurationMS
-		variablesObj.nextcue_duration_ss = self.convertTime(nextCueDurationMS, 'ss')
-		variablesObj.nextcue_duration_mmss = self.convertTime(nextCueDurationMS, 'mm:ss')
-		variablesObj.nextcue_duration_hhmmss = self.convertTime(nextCueDurationMS, 'hh:mm:ss')
-
-		variablesObj.nextcue_title = self.DATA.nextCue?.title || '-'
-		variablesObj.nextcue_subtitle = self.DATA.nextCue?.subtitle || ''
+		variablesObj.nextcue_title = nextCue?.title || '-'
 
 		self.setVariableValues(variablesObj)
 	},

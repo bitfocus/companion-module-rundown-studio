@@ -410,7 +410,7 @@ module.exports = {
 			return `${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
 		} else if (format === 'hh:mm:ss') {
 			return `${String(hours).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}:${String(
-				seconds % 60
+				seconds % 60,
 			).padStart(2, '0')}`
 		} else {
 			return ms //some unsupported format

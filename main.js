@@ -39,7 +39,12 @@ class rundownInstance extends InstanceBase {
 		this.serverTime = null //current server time
 		this.timeOffset = 0 //offset between server time and local time
 
-		this.DATA = {}
+		this.DATA = {
+			columns: [],
+			currentCueCells: {},
+			columnVariableIds: {},
+			activeCueCellsId: null,
+		}
 
 		this.INTERVAL = null //used to update timers based on latest data from the server
 	}
@@ -55,7 +60,12 @@ class rundownInstance extends InstanceBase {
 			this.serverTime = null
 			this.timeOffset = 0
 
-			this.DATA = {}
+			this.DATA = {
+				columns: [],
+				currentCueCells: {},
+				columnVariableIds: {},
+				activeCueCellsId: null,
+			}
 
 			//clear the interval
 			clearInterval(this.INTERVAL)
@@ -75,6 +85,11 @@ class rundownInstance extends InstanceBase {
 		if (this.config.advancedConfig == true) {
 			if (this.config.apiBaseUrl) this.API_BASE_URL = this.config.apiBaseUrl
 		}
+
+		this.DATA.columns = []
+		this.DATA.currentCueCells = {}
+		this.DATA.columnVariableIds = {}
+		this.DATA.activeCueCellsId = null
 
 		this.initActions()
 		this.initFeedbacks()

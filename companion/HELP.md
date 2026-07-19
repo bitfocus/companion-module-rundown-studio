@@ -54,6 +54,8 @@ The following Variables are available:
 - Current Cue Time Elapsed (ms/ss/mmss/hhmmss)
 - Next Cue Title
 
+Dynamic variables are also created for each public column on the rundown. A column named `AUDIO` becomes `currentcue_audio` and holds the plain-text cell content of the active cue in that column. Column titles are lowercased and non-alphanumeric characters become underscores. If a name would collide with a built-in variable (e.g. a column called `Title`), a numeric suffix is added (`currentcue_title_2`).
+
 ### Module Presets
 
 The following Presets are available:

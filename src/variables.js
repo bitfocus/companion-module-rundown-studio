@@ -1,4 +1,52 @@
+// Built-in currentcue_* ids that must not be overwritten by a column named e.g. "Title".
+const RESERVED_CURRENTCUE_IDS = new Set([
+	'currentcue_timeleft_ms',
+	'currentcue_timeleft_ss',
+	'currentcue_timeleft_mmss',
+	'currentcue_timeleft_hhmmss',
+	'currentcue_timeelapsed_ms',
+	'currentcue_timeelapsed_ss',
+	'currentcue_timeelapsed_mmss',
+	'currentcue_timeelapsed_hhmmss',
+	'currentcue_duration_ms',
+	'currentcue_duration_ss',
+	'currentcue_duration_mmss',
+	'currentcue_duration_hhmmss',
+	'currentcue_title',
+])
+
 module.exports = {
+	sanitizeVariableId: function (name) {
+		const sanitized = String(name || '')
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, '_')
+			.replace(/^_+|_+$/g, '')
+			.replace(/_+/g, '_')
+
+		return sanitized || 'column'
+	},
+
+	// Maps each column id → a unique currentcue_<sanitized name> variable id.
+	buildColumnVariableIds: function (columns) {
+		let self = this
+
+		const used = new Set(RESERVED_CURRENTCUE_IDS)
+		const map = {}
+
+		for (const column of columns || []) {
+			const base = `currentcue_${self.sanitizeVariableId(column.name)}`
+			let variableId = base
+			let n = 2
+			while (used.has(variableId)) {
+				variableId = `${base}_${n++}`
+			}
+			used.add(variableId)
+			map[column.id] = variableId
+		}
+
+		return map
+	},
+
 	initVariables: function () {
 		let self = this
 		let variables = []
@@ -37,6 +85,17 @@ module.exports = {
 		// subtitle for either — nextcue_duration_*, currentcue_subtitle and
 		// nextcue_subtitle have no source and are gone.
 		variables.push({ variableId: 'nextcue_title', name: 'Next Cue Title' })
+
+		const columns = self.DATA.columns || []
+		self.DATA.columnVariableIds = self.buildColumnVariableIds(columns)
+
+		for (const column of columns) {
+			const variableId = self.DATA.columnVariableIds[column.id]
+			variables.push({
+				variableId,
+				name: `Current Cue: ${column.name}`,
+			})
+		}
 
 		self.setVariableDefinitions(variables)
 	},
@@ -131,6 +190,14 @@ module.exports = {
 		variablesObj.currentcue_title = currentCue?.title || '-'
 
 		variablesObj.nextcue_title = nextCue?.title || '-'
+
+		const cells = self.DATA.currentCueCells || {}
+		const columnVariableIds = self.DATA.columnVariableIds || {}
+		for (const column of self.DATA.columns || []) {
+			const variableId = columnVariableIds[column.id]
+			if (!variableId) continue
+			variablesObj[variableId] = cells[column.id] ?? ''
+		}
 
 		self.setVariableValues(variablesObj)
 	},

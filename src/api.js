@@ -1,8 +1,9 @@
 const { InstanceStatus } = require('@companion-module/base')
 
-// The v1 stream we need: full rundown bodies (for the rundown_* variables) plus
-// cue change envelopes. `status` always rides along and can't be unsubscribed.
-const EVENTS_SUBSCRIPTION = 'rundown:fat,cue:thin'
+// The v1 stream we need: full rundown bodies (for the rundown_* variables),
+// cue change envelopes, plus column/cell so currentcue_<column> variables stay
+// live. `status` always rides along and can't be unsubscribed.
+const EVENTS_SUBSCRIPTION = 'rundown:fat,cue:thin,column:fat,cell'
 
 const RECONNECT_DELAY_MS = 5000
 
@@ -139,6 +140,7 @@ module.exports = {
 				// The spine of the channel: state, active cue and next cue in one shot.
 				self.DATA.status = data
 				self.setServerTime(data.server_time)
+				self.syncCurrentCueCells()
 				self.updateData()
 				break
 
@@ -155,6 +157,16 @@ module.exports = {
 				// Subscribed thin: the active cue's title and duration already arrive on
 				// every status frame, so a cue edit only needs a status refresh.
 				self.refreshStatus()
+				break
+
+			case 'column':
+				// Column create/rename/reorder/delete — refresh the list and redefine
+				// the dynamic currentcue_<column> variables.
+				self.fetchColumns()
+				break
+
+			case 'cell':
+				self.applyCellEvent(data)
 				break
 
 			case 'heartbeat':
@@ -216,6 +228,7 @@ module.exports = {
 			if (body?.data) {
 				self.DATA.status = body.data
 				self.setServerTime(body.data.server_time)
+				self.syncCurrentCueCells()
 				self.updateData()
 			}
 		} catch (error) {
@@ -239,17 +252,112 @@ module.exports = {
 				// control, so warn rather than fault the whole instance.
 				const detail = await self.readProblem(res)
 				self.log('warn', `Could not fetch rundown details (HTTP ${res.status}).${detail ? ' ' + detail : ''}`)
-				return
-			}
-
-			const body = await res.json()
-			if (body?.data) {
-				self.DATA.rundown = body.data
-				self.updateData()
+			} else {
+				const body = await res.json()
+				if (body?.data) {
+					self.DATA.rundown = body.data
+					self.updateData()
+				}
 			}
 		} catch (error) {
 			self.log('warn', `Rundown fetch failed: ${String(error)}`)
 		}
+
+		// Columns are independent of the rundown shallow body — load them so the
+		// dynamic currentcue_<column> variables exist before the first status frame.
+		self.fetchColumns()
+	},
+
+	// Public columns in display order → dynamic currentcue_<sanitized name> vars.
+	fetchColumns: async function () {
+		let self = this
+
+		try {
+			const res = await fetch(self.apiUrl('/columns'), {
+				headers: { Authorization: `Bearer ${self.config.apiToken}` },
+			})
+
+			if (!res.ok) {
+				const detail = await self.readProblem(res)
+				self.log('warn', `Could not fetch columns (HTTP ${res.status}).${detail ? ' ' + detail : ''}`)
+				return
+			}
+
+			const body = await res.json()
+			self.DATA.columns = body?.data?.items || []
+			self.initVariables()
+			self.syncCurrentCueCells(true)
+			self.checkVariables()
+		} catch (error) {
+			self.log('warn', `Columns fetch failed: ${String(error)}`)
+		}
+	},
+
+	// When the active cue changes (or force=true), pull that cue's cell row.
+	syncCurrentCueCells: function (force = false) {
+		let self = this
+
+		const cueId = self.DATA.status?.active_cue?.id || null
+
+		if (!force && cueId === self.DATA.activeCueCellsId) return
+
+		self.DATA.activeCueCellsId = cueId
+
+		if (!cueId) {
+			self.DATA.currentCueCells = {}
+			self.checkVariables()
+			return
+		}
+
+		self.fetchCurrentCueCells(cueId)
+	},
+
+	fetchCurrentCueCells: async function (cueId) {
+		let self = this
+
+		try {
+			const res = await fetch(self.apiUrl(`/cells?cue_id=${encodeURIComponent(cueId)}&limit=100`), {
+				headers: { Authorization: `Bearer ${self.config.apiToken}` },
+			})
+
+			if (!res.ok) {
+				const detail = await self.readProblem(res)
+				self.log('warn', `Could not fetch cells for active cue (HTTP ${res.status}).${detail ? ' ' + detail : ''}`)
+				return
+			}
+
+			// A newer cue may have become active while this request was in flight.
+			if (cueId !== self.DATA.activeCueCellsId) return
+
+			const body = await res.json()
+			const cells = {}
+			for (const cell of body?.data?.items || []) {
+				cells[cell.column_id] = cell.content ?? ''
+			}
+			self.DATA.currentCueCells = cells
+			self.checkVariables()
+		} catch (error) {
+			self.log('warn', `Cells fetch failed: ${String(error)}`)
+		}
+	},
+
+	applyCellEvent: function (data) {
+		let self = this
+
+		const activeCueId = self.DATA.status?.active_cue?.id
+		if (!activeCueId || data.cue_id !== activeCueId || !data.column_id) return
+
+		if (!self.DATA.currentCueCells) {
+			self.DATA.currentCueCells = {}
+		}
+
+		if (data.change === 'removed') {
+			self.DATA.currentCueCells[data.column_id] = ''
+		} else {
+			self.DATA.currentCueCells[data.column_id] = data.cell?.content ?? ''
+		}
+
+		self.checkVariables()
 	},
 
 	startInterval: function () {
@@ -386,6 +494,7 @@ module.exports = {
 			if (json?.data && typeof json.data.state === 'string') {
 				self.DATA.status = json.data
 				self.setServerTime(json.data.server_time)
+				self.syncCurrentCueCells()
 				self.updateData()
 			}
 

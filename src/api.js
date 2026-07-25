@@ -1,9 +1,10 @@
 const { InstanceStatus } = require('@companion-module/base')
 
 // The v1 stream we need: full rundown bodies (for the rundown_* variables),
-// cue change envelopes, plus column/cell so currentcue_<column> variables stay
-// live. `status` always rides along and can't be unsubscribed.
-const EVENTS_SUBSCRIPTION = 'rundown:fat,cue:thin,column:fat,cell'
+// full cue bodies (for currentcue_/nextcue_ subtitle + duration, which the
+// status frame doesn't carry), plus column/cell so currentcue_<column>
+// variables stay live. `status` always rides along and can't be unsubscribed.
+const EVENTS_SUBSCRIPTION = 'rundown:fat,cue:fat,column:fat,cell'
 
 const RECONNECT_DELAY_MS = 5000
 
@@ -154,8 +155,11 @@ module.exports = {
 				break
 
 			case 'cue':
-				// Subscribed thin: the active cue's title and duration already arrive on
-				// every status frame, so a cue edit only needs a status refresh.
+				// Subscribed fat: cache the full cue body so currentcue_/nextcue_
+				// subtitle + duration have a source (the status frame carries only
+				// id/title for cues). Then refresh status — a cue edit may change
+				// which cue is active/next and carries the live timing.
+				self.applyCueEvent(data)
 				self.refreshStatus()
 				break
 
@@ -243,7 +247,10 @@ module.exports = {
 		let self = this
 
 		try {
-			const res = await fetch(self.apiUrl(''), {
+			// ?include=cues sideloads full cue bodies (in `included`, a sibling of
+			// `data`) so currentcue_/nextcue_ subtitle + duration have a source
+			// before the first cue:fat frame arrives.
+			const res = await fetch(self.apiUrl('?include=cues'), {
 				headers: { Authorization: `Bearer ${self.config.apiToken}` },
 			})
 
@@ -256,8 +263,14 @@ module.exports = {
 				const body = await res.json()
 				if (body?.data) {
 					self.DATA.rundown = body.data
-					self.updateData()
 				}
+				// Seed the cue cache: cueId → full cue object.
+				const cues = {}
+				for (const cue of body?.included?.cues || []) {
+					if (cue?.id) cues[cue.id] = cue
+				}
+				self.DATA.cues = cues
+				self.updateData()
 			}
 		} catch (error) {
 			self.log('warn', `Rundown fetch failed: ${String(error)}`)
@@ -358,6 +371,22 @@ module.exports = {
 		}
 
 		self.checkVariables()
+	},
+
+	// cue:fat envelope is {change, id, cue: {…full cue…}}. Keep the cache in sync
+	// so currentcue_/nextcue_ subtitle + duration read from full cue bodies.
+	applyCueEvent: function (data) {
+		let self = this
+
+		if (!self.DATA.cues) self.DATA.cues = {}
+
+		if (data.change === 'removed') {
+			delete self.DATA.cues[data.id]
+		} else if (data.cue?.id) {
+			self.DATA.cues[data.cue.id] = data.cue
+		}
+		// Values are refreshed by the refreshStatus() → checkVariables() that
+		// follows this call in the event handler.
 	},
 
 	startInterval: function () {

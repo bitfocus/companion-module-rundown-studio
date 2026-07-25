@@ -41,6 +41,7 @@ class rundownInstance extends InstanceBase {
 
 		this.DATA = {
 			columns: [],
+			cues: {},
 			currentCueCells: {},
 			columnVariableIds: {},
 			activeCueCellsId: null,
@@ -87,6 +88,7 @@ class rundownInstance extends InstanceBase {
 		}
 
 		this.DATA.columns = []
+		this.DATA.cues = {}
 		this.DATA.currentCueCells = {}
 		this.DATA.columnVariableIds = {}
 		this.DATA.activeCueCellsId = null

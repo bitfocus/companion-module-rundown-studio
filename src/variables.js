@@ -80,11 +80,17 @@ module.exports = {
 		variables.push({ variableId: 'currentcue_duration_hhmmss', name: 'Current Cue Duration (hh:mm:ss)' })
 
 		variables.push({ variableId: 'currentcue_title', name: 'Current Cue Title' })
+		variables.push({ variableId: 'currentcue_subtitle', name: 'Current Cue Subtitle' })
 
-		// The v1 status snapshot carries only id and title for the next cue, and no
-		// subtitle for either — nextcue_duration_*, currentcue_subtitle and
-		// nextcue_subtitle have no source and are gone.
 		variables.push({ variableId: 'nextcue_title', name: 'Next Cue Title' })
+		variables.push({ variableId: 'nextcue_subtitle', name: 'Next Cue Subtitle' })
+
+		// The status snapshot carries only id + title for cues; subtitle and
+		// duration come from the full cue bodies cached via the cue:fat stream.
+		variables.push({ variableId: 'nextcue_duration_ms', name: 'Next Cue Duration (ms)' })
+		variables.push({ variableId: 'nextcue_duration_ss', name: 'Next Cue Duration (ss)' })
+		variables.push({ variableId: 'nextcue_duration_mmss', name: 'Next Cue Duration (mm:ss)' })
+		variables.push({ variableId: 'nextcue_duration_hhmmss', name: 'Next Cue Duration (hh:mm:ss)' })
 
 		const columns = self.DATA.columns || []
 		self.DATA.columnVariableIds = self.buildColumnVariableIds(columns)
@@ -190,6 +196,21 @@ module.exports = {
 		variablesObj.currentcue_title = currentCue?.title || '-'
 
 		variablesObj.nextcue_title = nextCue?.title || '-'
+
+		// Subtitle and next-cue duration aren't on the status frame — read them from
+		// the full cue bodies cached via the cue:fat stream, keyed by cue id.
+		const cues = self.DATA.cues || {}
+		const currentCueFull = currentCue?.id ? cues[currentCue.id] : null
+		const nextCueFull = nextCue?.id ? cues[nextCue.id] : null
+
+		variablesObj.currentcue_subtitle = currentCueFull?.subtitle || ''
+		variablesObj.nextcue_subtitle = nextCueFull?.subtitle || ''
+
+		let nextCueDurationMS = nextCueFull?.duration_ms || 0
+		variablesObj.nextcue_duration_ms = nextCueDurationMS
+		variablesObj.nextcue_duration_ss = self.convertTime(nextCueDurationMS, 'ss')
+		variablesObj.nextcue_duration_mmss = self.convertTime(nextCueDurationMS, 'mm:ss')
+		variablesObj.nextcue_duration_hhmmss = self.convertTime(nextCueDurationMS, 'hh:mm:ss')
 
 		const cells = self.DATA.currentCueCells || {}
 		const columnVariableIds = self.DATA.columnVariableIds || {}

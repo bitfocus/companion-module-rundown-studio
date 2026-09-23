@@ -92,6 +92,7 @@ class rundownInstance extends InstanceBase {
 		this.DATA.currentCueCells = {}
 		this.DATA.columnVariableIds = {}
 		this.DATA.activeCueCellsId = null
+		this.DATA.cueChoicesSignature = null
 
 		this.initActions()
 		this.initFeedbacks()

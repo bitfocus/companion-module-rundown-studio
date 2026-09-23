@@ -36,6 +36,33 @@ module.exports = {
 			},
 		}
 
+		const cueChoices = self.getCueChoices()
+
+		actions.jumpToCue = {
+			name: 'Jump to cue',
+			description: 'Makes the chosen cue active. When the show is stopped (pre-show), this starts it on that cue.',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Cue',
+					id: 'cueId',
+					default: cueChoices[0]?.id ?? '',
+					choices: cueChoices,
+					allowCustom: true,
+					tooltip: 'Pick a cue, or type a cue ID (variables are supported). Headings and groups cannot be jumped to.',
+				},
+			],
+			callback: async (action) => {
+				const cueId = (await self.parseVariablesInString(String(action.options.cueId || ''))).trim()
+				if (!cueId) {
+					self.log('warn', 'Jump to cue called without a cue selected')
+					return
+				}
+
+				self.sendMessage('action:jump', 'POST', { cue_id: cueId })
+			},
+		}
+
 		/*actions.endRundown = {
 			name: 'End rundown',
 			options: [],

@@ -23,6 +23,7 @@ The following Actions are available:
 - Pause rundown
 - Go to next cue
 - Go to previous cue
+- Jump to cue (pick from the rundown's cues, or enter a cue ID; starts the show on that cue when stopped)
 - Add/Remove time from active cue
 - Output Message: Show
 - Output Message: Hide
@@ -34,6 +35,7 @@ The following Actions are available:
 The following Feedbacks are available:
 
 - Rundown State (Running/Paused/Stopped)
+- Cue is active
 - Visual Progress (used in Presets)
 
 ### Module Variables
@@ -63,6 +65,7 @@ The following Presets are available:
 - Transport Controls
 - Rundown Info (Name, Date, etc.)
 - Current Cue/Next Cue Info
+- Jump to Cue (one button per cue in the rundown, lit while that cue is active)
 - Visual Progress Dots (last 5 seconds)
 - Output Message (Show, Hide, Toggle)
 

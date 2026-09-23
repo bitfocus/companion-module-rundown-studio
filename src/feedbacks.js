@@ -32,6 +32,32 @@ module.exports = {
 			},
 		}
 
+		const cueChoices = self.getCueChoices()
+
+		feedbacks.cueIsActive = {
+			name: 'Cue is active',
+			type: 'boolean',
+			description: 'Illuminate if the chosen cue is the active cue',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Cue',
+					id: 'cueId',
+					default: cueChoices[0]?.id ?? '',
+					choices: cueChoices,
+					allowCustom: true,
+				},
+			],
+			defaultStyle: {
+				bgcolor: combineRgb(239, 68, 68), // Rundown Studio red, #ef4444
+				color: combineRgb(255, 255, 255),
+			},
+			callback: async (feedback) => {
+				const activeCueId = self.DATA.status?.active_cue?.id
+				return !!activeCueId && activeCueId === feedback.options.cueId
+			},
+		}
+
 		feedbacks.currentCueRunningOver = {
 			name: 'Current cue is running over',
 			type: 'boolean',

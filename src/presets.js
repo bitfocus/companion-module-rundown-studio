@@ -428,6 +428,47 @@ module.exports = {
 			feedbacks: [],
 		}
 
+		// One button per playable cue, lit while that cue is active. Regenerated
+		// whenever the rundown's cue list changes.
+		for (const cue of self.getCueChoices()) {
+			presets[`jumpToCue_${cue.id}`] = {
+				type: 'button',
+				category: 'Jump to Cue',
+				name: `Jump to ${cue.label}`,
+				style: {
+					size: '14',
+					color: combineRgb(255, 255, 255),
+					bgcolor: combineRgb(0, 0, 0),
+					text: cue.label,
+				},
+				steps: [
+					{
+						down: [
+							{
+								actionId: 'jumpToCue',
+								options: {
+									cueId: cue.id,
+								},
+							},
+						],
+						up: [],
+					},
+				],
+				feedbacks: [
+					{
+						feedbackId: 'cueIsActive',
+						options: {
+							cueId: cue.id,
+						},
+						style: {
+							bgcolor: combineRgb(239, 68, 68), // Rundown Studio red, #ef4444
+							color: combineRgb(255, 255, 255),
+						},
+					},
+				],
+			}
+		}
+
 		for (let i = 5; i >= 1; i--) {
 			presets[`visualProgress${i}`] = {
 				type: 'button',

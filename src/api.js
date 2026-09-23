@@ -151,6 +151,7 @@ module.exports = {
 				} else if (data.rundown) {
 					self.DATA.rundown = data.rundown
 				}
+				self.updateCueChoices()
 				self.updateData()
 				break
 
@@ -160,6 +161,7 @@ module.exports = {
 				// id/title for cues). Then refresh status — a cue edit may change
 				// which cue is active/next and carries the live timing.
 				self.applyCueEvent(data)
+				self.updateCueChoices()
 				self.refreshStatus()
 				break
 
@@ -270,6 +272,7 @@ module.exports = {
 					if (cue?.id) cues[cue.id] = cue
 				}
 				self.DATA.cues = cues
+				self.updateCueChoices()
 				self.updateData()
 			}
 		} catch (error) {
@@ -389,6 +392,48 @@ module.exports = {
 		// follows this call in the event handler.
 	},
 
+	// Playable cues in run-of-show order, as dropdown choices. Walks the
+	// cue_order tree (group children inline) and drops headings/groups, which
+	// action:jump rejects.
+	getCueChoices: function () {
+		let self = this
+
+		const cues = self.DATA.cues || {}
+		const order = self.DATA.rundown?.cue_order
+
+		let ids
+		if (Array.isArray(order)) {
+			ids = order.flatMap((node) => [node.id, ...(node.children || []).map((child) => child.id)])
+		} else {
+			ids = Object.keys(cues)
+		}
+
+		const choices = []
+		for (const id of ids) {
+			const cue = cues[id]
+			if (!cue || cue.type !== 'cue') continue
+			// Titles only: cue objects carry no display number, and a position count
+			// would disagree with the app's own numbering (prefix, start, padding).
+			choices.push({ id: cue.id, label: cue.title || '(untitled)' })
+		}
+		return choices
+	},
+
+	// Redefine the cue-dependent actions/feedbacks/presets, but only when the
+	// cue list actually changed — cue:fat frames also fire on duration edits.
+	updateCueChoices: function () {
+		let self = this
+
+		const choices = self.getCueChoices()
+		const signature = JSON.stringify(choices)
+		if (signature === self.DATA.cueChoicesSignature) return
+
+		self.DATA.cueChoicesSignature = signature
+		self.initActions()
+		self.initFeedbacks()
+		self.initPresets()
+	},
+
 	startInterval: function () {
 		let self = this
 
@@ -472,6 +517,11 @@ module.exports = {
 				// e.g. runner.not_running when acting on a stopped show — not a
 				// connection problem, so leave the instance status alone.
 				self.log('warn', `Action rejected: the show is not running.${suffix}`)
+				break
+			case 422:
+				// e.g. cues.invalid_cue_type when jumping to a heading/group — a bad
+				// button option, not a connection problem.
+				self.log('warn', `Action rejected by Rundown Studio.${suffix}`)
 				break
 			case 429:
 				self.log('warn', `Rate limited by Rundown Studio.${suffix}`)

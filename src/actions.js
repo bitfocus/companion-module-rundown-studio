@@ -63,13 +63,25 @@ module.exports = {
 			},
 		}
 
-		/*actions.endRundown = {
-			name: 'End rundown',
+		actions.stopRundown = {
+			name: 'Stop rundown',
+			description:
+				'Ends the show: the countdown halts and the active cue clears. Use Reset rundown before starting again.',
 			options: [],
 			callback: async () => {
-				self.sendMessage(`end`)
+				self.sendMessage(`action:end`)
 			},
-		}*/
+		}
+
+		actions.resetRundown = {
+			name: 'Reset rundown',
+			description:
+				'Returns the rundown to pre-show (same as "Reset rundown timing" in the dashboard). Does not start the show.',
+			options: [],
+			callback: async () => {
+				self.sendMessage(`action:reset-rundown`)
+			},
+		}
 
 		actions.addTime_Seconds = {
 			name: 'Add time to current cue',
@@ -209,6 +221,59 @@ module.exports = {
 				}
 
 				self.sendMessage('output-message', 'PATCH', body)
+			},
+		}
+
+		// Sub-timers (experimental API). Each needs a started show; before that
+		// Rundown Studio rejects them with runner.not_started.
+		const subTimerChoices = self.getSubTimerChoices()
+		const subTimerOption = {
+			type: 'dropdown',
+			label: 'Sub-timer',
+			id: 'subTimerId',
+			default: subTimerChoices[0]?.id ?? '',
+			choices: subTimerChoices,
+			allowCustom: true,
+			tooltip: 'Pick a sub-timer, or type a sub-timer ID (variables are supported).',
+		}
+
+		actions.startSubTimer = {
+			name: 'Sub-timer: Start',
+			description:
+				'Experimental. Starts the sub-timer, or resumes it if paused. A finished countdown must be reset before it can run again.',
+			options: [subTimerOption],
+			callback: async (action) => {
+				self.sendSubTimerAction('start', action.options.subTimerId)
+			},
+		}
+
+		actions.pauseSubTimer = {
+			name: 'Sub-timer: Pause',
+			description: 'Experimental. Pauses the sub-timer where it is.',
+			options: [subTimerOption],
+			callback: async (action) => {
+				self.sendSubTimerAction('pause', action.options.subTimerId)
+			},
+		}
+
+		actions.toggleSubTimer = {
+			name: 'Sub-timer: Start/Pause',
+			description: 'Experimental. Pauses the sub-timer if it is running, otherwise starts it.',
+			options: [subTimerOption],
+			callback: async (action) => {
+				const subTimerId = (await self.parseVariablesInString(String(action.options.subTimerId || ''))).trim()
+				const { state } = self.getSubTimerRunState(subTimerId)
+				self.sendSubTimerAction(state === 'running' ? 'pause' : 'start', subTimerId)
+			},
+		}
+
+		actions.resetSubTimer = {
+			name: 'Sub-timer: Reset',
+			description:
+				'Experimental. Stops the sub-timer and puts it back to its full time (00:00 for a count up). A "Start with cue" timer stays stopped.',
+			options: [subTimerOption],
+			callback: async (action) => {
+				self.sendSubTimerAction('reset', action.options.subTimerId)
 			},
 		}
 

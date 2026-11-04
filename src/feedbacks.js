@@ -118,6 +118,85 @@ module.exports = {
 			},
 		}
 
+		// Sub-timers (experimental API).
+		const subTimerChoices = self.getSubTimerChoices()
+		const subTimerOption = {
+			type: 'dropdown',
+			label: 'Sub-timer',
+			id: 'subTimerId',
+			default: subTimerChoices[0]?.id ?? '',
+			choices: subTimerChoices,
+			allowCustom: true,
+		}
+
+		feedbacks.subTimerState = {
+			name: 'Sub-timer: State',
+			type: 'boolean',
+			description: 'Experimental. Illuminate if the chosen sub-timer is Running/Paused/Finished/Reset',
+			options: [
+				subTimerOption,
+				{
+					type: 'dropdown',
+					label: 'State',
+					id: 'state',
+					default: 'running',
+					choices: [
+						{ id: 'running', label: 'Running' },
+						{ id: 'paused', label: 'Paused' },
+						{ id: 'finished', label: 'Finished (countdown held at 00:00)' },
+						{ id: 'reset', label: 'Reset' },
+					],
+				},
+			],
+			defaultStyle: {
+				bgcolor: combineRgb(0, 153, 51),
+				color: combineRgb(255, 255, 255),
+			},
+			callback: async (feedback) => {
+				return self.getSubTimerRunState(feedback.options.subTimerId).state === feedback.options.state
+			},
+		}
+
+		feedbacks.subTimerOvertime = {
+			name: 'Sub-timer: In overtime',
+			type: 'boolean',
+			description: 'Experimental. Illuminate if the chosen countdown has run past 00:00 (end action "continue")',
+			options: [subTimerOption],
+			defaultStyle: {
+				bgcolor: combineRgb(255, 0, 0),
+				color: combineRgb(255, 255, 255),
+			},
+			callback: async (feedback) => {
+				const run = self.getSubTimerRunState(feedback.options.subTimerId)
+				return run.direction === 'down' && run.state !== 'reset' && run.displayMs < 0
+			},
+		}
+
+		feedbacks.subTimerTimeRemaining = {
+			name: 'Sub-timer: X or less seconds remaining',
+			type: 'boolean',
+			description: 'Experimental. Illuminate if the chosen countdown has X or less seconds left (including overtime)',
+			options: [
+				subTimerOption,
+				{
+					type: 'number',
+					label: 'Seconds',
+					id: 'seconds',
+					default: 10,
+					min: 0,
+					max: 86400,
+				},
+			],
+			defaultStyle: {
+				bgcolor: combineRgb(255, 191, 0),
+				color: combineRgb(0, 0, 0),
+			},
+			callback: async (feedback) => {
+				const run = self.getSubTimerRunState(feedback.options.subTimerId)
+				return run.direction === 'down' && run.state !== 'reset' && run.displayMs <= feedback.options.seconds * 1000
+			},
+		}
+
 		self.setFeedbackDefinitions(feedbacks)
 	},
 }

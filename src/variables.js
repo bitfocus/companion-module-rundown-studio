@@ -26,6 +26,12 @@ module.exports = {
 		return sanitized || 'column'
 	},
 
+	// subtimer_<id>_* — keyed by the sub-timer's id rather than its name or
+	// position, so buttons survive renames and reordering.
+	subTimerVariablePrefix: function (subTimerId) {
+		return `subtimer_${String(subTimerId).replace(/[^A-Za-z0-9]/g, '')}`
+	},
+
 	// Maps each column id → a unique currentcue_<sanitized name> variable id.
 	buildColumnVariableIds: function (columns) {
 		let self = this
@@ -101,6 +107,15 @@ module.exports = {
 				variableId,
 				name: `Current Cue: ${column.name}`,
 			})
+		}
+
+		for (const choice of self.getSubTimerChoices()) {
+			const prefix = self.subTimerVariablePrefix(choice.id)
+			variables.push({ variableId: `${prefix}_name`, name: `Sub-timer ${choice.label}: Name` })
+			variables.push({ variableId: `${prefix}_cue`, name: `Sub-timer ${choice.label}: Cue Title` })
+			variables.push({ variableId: `${prefix}_time`, name: `Sub-timer ${choice.label}: Time` })
+			variables.push({ variableId: `${prefix}_ms`, name: `Sub-timer ${choice.label}: Time (ms)` })
+			variables.push({ variableId: `${prefix}_state`, name: `Sub-timer ${choice.label}: State` })
 		}
 
 		self.setVariableDefinitions(variables)
@@ -218,6 +233,18 @@ module.exports = {
 			const variableId = columnVariableIds[column.id]
 			if (!variableId) continue
 			variablesObj[variableId] = cells[column.id] ?? ''
+		}
+
+		const subTimerStateLabels = { running: 'Running', paused: 'Paused', finished: 'Finished', reset: 'Reset' }
+		const subTimerCues = Object.fromEntries((self.DATA.subTimers || []).map((t) => [t.id, t.cue_title || '']))
+		for (const choice of self.getSubTimerChoices()) {
+			const prefix = self.subTimerVariablePrefix(choice.id)
+			const run = self.getSubTimerRunState(choice.id)
+			variablesObj[`${prefix}_name`] = choice.name
+			variablesObj[`${prefix}_cue`] = subTimerCues[choice.id] ?? ''
+			variablesObj[`${prefix}_time`] = self.formatSubTimer(run.displayMs, run.direction)
+			variablesObj[`${prefix}_ms`] = run.displayMs
+			variablesObj[`${prefix}_state`] = subTimerStateLabels[run.state]
 		}
 
 		self.setVariableValues(variablesObj)

@@ -42,10 +42,13 @@ class rundownInstance extends InstanceBase {
 		this.DATA = {
 			columns: [],
 			cues: {},
+			subTimers: [],
 			currentCueCells: {},
 			columnVariableIds: {},
 			activeCueCellsId: null,
 		}
+
+		this.SUB_TIMERS_FETCH_TIMER = null
 
 		this.INTERVAL = null //used to update timers based on latest data from the server
 	}
@@ -63,6 +66,7 @@ class rundownInstance extends InstanceBase {
 
 			this.DATA = {
 				columns: [],
+				subTimers: [],
 				currentCueCells: {},
 				columnVariableIds: {},
 				activeCueCellsId: null,
@@ -93,6 +97,8 @@ class rundownInstance extends InstanceBase {
 		this.DATA.columnVariableIds = {}
 		this.DATA.activeCueCellsId = null
 		this.DATA.cueChoicesSignature = null
+		this.DATA.subTimers = []
+		this.DATA.subTimersSignature = null
 
 		this.initActions()
 		this.initFeedbacks()

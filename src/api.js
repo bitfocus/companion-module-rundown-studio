@@ -152,6 +152,7 @@ module.exports = {
 					self.DATA.rundown = data.rundown
 				}
 				self.updateCueChoices()
+				self.scheduleSubTimersFetch()
 				self.updateData()
 				break
 
@@ -163,6 +164,9 @@ module.exports = {
 				self.applyCueEvent(data)
 				self.updateCueChoices()
 				self.refreshStatus()
+				// Sub-timer settings live with their cue but aren't on the cue body,
+				// and there's no sub-timer event — re-list them on any cue change.
+				self.scheduleSubTimersFetch()
 				break
 
 			case 'column':
@@ -208,6 +212,9 @@ module.exports = {
 
 		clearTimeout(self.RECONNECT_TIMER)
 		self.RECONNECT_TIMER = null
+
+		clearTimeout(self.SUB_TIMERS_FETCH_TIMER)
+		self.SUB_TIMERS_FETCH_TIMER = null
 
 		if (self.streamController) {
 			self.streamController.abort()
@@ -282,6 +289,148 @@ module.exports = {
 		// Columns are independent of the rundown shallow body — load them so the
 		// dynamic currentcue_<column> variables exist before the first status frame.
 		self.fetchColumns()
+		self.fetchSubTimers()
+	},
+
+	// Sub-timer settings (experimental API): name, cue, direction, duration,
+	// end action. Run state comes from status.sub_timers instead.
+	fetchSubTimers: async function () {
+		let self = this
+
+		try {
+			const res = await fetch(self.apiUrl('/sub-timers'), {
+				headers: { Authorization: `Bearer ${self.config.apiToken}` },
+			})
+
+			if (!res.ok) {
+				// Experimental endpoint: if it moves or goes away, only the sub-timer
+				// features go quiet — the rest of the module keeps working.
+				const { detail } = await self.readProblemBody(res)
+				self.log('warn', `Could not fetch sub-timers (HTTP ${res.status}).${detail ? ' ' + detail : ''}`)
+				return
+			}
+
+			const body = await res.json()
+			self.DATA.subTimers = body?.data?.items || []
+			self.updateSubTimerChoices()
+		} catch (error) {
+			self.log('warn', `Sub-timers fetch failed: ${String(error)}`)
+		}
+	},
+
+	// Cue edits arrive in bursts while someone types; coalesce the re-list.
+	scheduleSubTimersFetch: function () {
+		let self = this
+
+		clearTimeout(self.SUB_TIMERS_FETCH_TIMER)
+		self.SUB_TIMERS_FETCH_TIMER = setTimeout(() => {
+			self.SUB_TIMERS_FETCH_TIMER = null
+			self.fetchSubTimers()
+		}, 1000)
+	},
+
+	// Sub-timers in show order as dropdown choices. Unnamed timers are labelled
+	// by their position within the cue, as the app shows them.
+	getSubTimerChoices: function () {
+		let self = this
+
+		const perCue = {}
+		return (self.DATA.subTimers || []).map((timer) => {
+			perCue[timer.cue_id] = (perCue[timer.cue_id] || 0) + 1
+			const name = timer.name || `Sub-timer ${perCue[timer.cue_id]}`
+			return { id: timer.id, label: `${timer.cue_title || '(untitled)'} › ${name}`, name }
+		})
+	},
+
+	// Redefine everything that lists sub-timers, but only when the list changed.
+	updateSubTimerChoices: function () {
+		let self = this
+
+		const signature = JSON.stringify(
+			(self.DATA.subTimers || []).map((t) => [t.id, t.name, t.cue_id, t.cue_title, t.direction, t.end_action]),
+		)
+		if (signature === self.DATA.subTimersSignature) return
+
+		self.DATA.subTimersSignature = signature
+		self.initActions()
+		self.initFeedbacks()
+		self.initVariables()
+		self.initPresets()
+		self.checkVariables()
+	},
+
+	// Run state of one sub-timer, computed from the status snapshot plus its
+	// settings. state is running/paused/finished/reset; displayMs is what the
+	// timer shows — signed remaining for a countdown (negative is overtime),
+	// elapsed for a count up.
+	getSubTimerRunState: function (subTimerId) {
+		let self = this
+
+		const settings = (self.DATA.subTimers || []).find((t) => t.id === subTimerId)
+		const live = (self.DATA.status?.sub_timers || []).find((t) => t.id === subTimerId)
+
+		const direction = settings?.direction || 'down'
+		const durationMs = live?.duration_ms ?? settings?.duration_ms ?? 0
+
+		// Not listed in status means it's in its reset state.
+		if (!live) {
+			return { state: 'reset', direction, displayMs: direction === 'up' ? 0 : durationMs }
+		}
+
+		const paused = live.paused_at !== null && live.paused_at !== undefined
+		const elapsed = Math.max(0, (paused ? live.paused_at : self.serverTimeUnix) - live.started_at)
+
+		if (direction === 'up') {
+			return { state: paused ? 'paused' : 'running', direction, displayMs: elapsed }
+		}
+
+		const remaining = durationMs - elapsed
+		// A `stop` countdown holds at 00:00; `continue` runs on into overtime.
+		if (remaining <= 0 && settings?.end_action !== 'continue') {
+			return { state: 'finished', direction, displayMs: 0 }
+		}
+
+		return { state: paused ? 'paused' : 'running', direction, displayMs: remaining }
+	},
+
+	// mm:ss under an hour, h:mm:ss above — the app's clock style. Countdowns
+	// round up to the second, count ups round down; overtime gets a `+`.
+	formatSubTimer: function (displayMs, direction) {
+		const overtime = displayMs < 0
+		const abs = Math.abs(displayMs)
+		const totalSeconds = direction === 'up' ? Math.floor(abs / 1000) : Math.ceil(abs / 1000)
+
+		const hours = Math.floor(totalSeconds / 3600)
+		const minutes = Math.floor((totalSeconds % 3600) / 60)
+		const seconds = totalSeconds % 60
+
+		const clock =
+			hours > 0
+				? `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+				: `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+
+		return (overtime ? '+' : '') + clock
+	},
+
+	// Start/pause/reset need the cue id as well as the sub-timer id.
+	sendSubTimerAction: async function (verb, subTimerOption) {
+		let self = this
+
+		const subTimerId = (await self.parseVariablesInString(String(subTimerOption || ''))).trim()
+		if (!subTimerId) {
+			self.log('warn', `Sub-timer ${verb} called without a sub-timer selected`)
+			return
+		}
+
+		const timer =
+			(self.DATA.subTimers || []).find((t) => t.id === subTimerId) ||
+			(self.DATA.status?.sub_timers || []).find((t) => t.id === subTimerId)
+		if (!timer) {
+			self.log('warn', `Sub-timer ${subTimerId} was not found in this rundown`)
+			return
+		}
+
+		self.sendMessage(`action:${verb}-sub-timer`, 'POST', { cue_id: timer.cue_id, sub_timer_id: subTimerId })
 	},
 
 	// Public columns in display order → dynamic currentcue_<sanitized name> vars.
@@ -486,16 +635,21 @@ module.exports = {
 	},
 
 	readProblem: async function (res) {
-		// Errors are RFC 9457 problem+json; `detail` states the corrective action.
+		return (await this.readProblemBody(res)).detail
+	},
+
+	readProblemBody: async function (res) {
+		// Errors are RFC 9457 problem+json; `detail` states the corrective action
+		// and `code` names the specific case (e.g. sub_timers.not_found).
 		try {
 			const body = await res.json()
-			return body?.detail || body?.title || null
+			return { detail: body?.detail || body?.title || null, code: body?.code || null }
 		} catch {
-			return null
+			return { detail: null, code: null }
 		}
 	},
 
-	handleHttpError: function (res, detail) {
+	handleHttpError: function (res, detail, code = null) {
 		let self = this
 
 		const suffix = detail ? ` ${detail}` : ''
@@ -510,13 +664,20 @@ module.exports = {
 				self.log('error', `Your API token lacks permission for this action.${suffix}`)
 				break
 			case 404:
+				// A missing cue or sub-timer is a stale button option, not a bad
+				// Rundown ID — leave the instance status alone.
+				if (code === 'cues.not_found' || code === 'sub_timers.not_found') {
+					self.log('warn', `Action target not found.${suffix}`)
+					break
+				}
 				self.updateStatus(InstanceStatus.ConnectionFailure, 'Invalid Rundown ID.')
 				self.log('error', `Rundown not found. Double check your Rundown ID.${suffix}`)
 				break
 			case 409:
-				// e.g. runner.not_running when acting on a stopped show — not a
-				// connection problem, so leave the instance status alone.
-				self.log('warn', `Action rejected: the show is not running.${suffix}`)
+				// e.g. runner.not_running when acting on a stopped show, or
+				// runner.ended_cannot_start before a reset — not a connection problem,
+				// so leave the instance status alone. `detail` names the specific case.
+				self.log('warn', `Action rejected by the show's current state.${suffix}`)
 				break
 			case 422:
 				// e.g. cues.invalid_cue_type when jumping to a heading/group — a bad
@@ -562,7 +723,8 @@ module.exports = {
 			const res = await fetch(url, options)
 
 			if (!res.ok) {
-				self.handleHttpError(res, await self.readProblem(res))
+				const { detail, code } = await self.readProblemBody(res)
+				self.handleHttpError(res, detail, code)
 				return null
 			}
 

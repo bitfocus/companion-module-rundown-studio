@@ -98,10 +98,10 @@ module.exports = {
 			feedbacks: [],
 		}
 
-		/*presets['End'] = {
+		presets['Stop'] = {
 			type: 'button',
 			category: 'Transport Controls',
-			name: 'End Rundown',
+			name: 'Stop Rundown',
 			style: {
 				size: '18',
 				color: combineRgb(255, 255, 255),
@@ -112,14 +112,37 @@ module.exports = {
 				{
 					down: [
 						{
-							actionId: 'endRundown',
+							actionId: 'stopRundown',
 						},
 					],
 					up: [],
 				},
 			],
 			feedbacks: [],
-		}*/
+		}
+
+		presets['Reset'] = {
+			type: 'button',
+			category: 'Transport Controls',
+			name: 'Reset Rundown',
+			style: {
+				text: 'RESET',
+				size: '18',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+			},
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'resetRundown',
+						},
+					],
+					up: [],
+				},
+			],
+			feedbacks: [],
+		}
 
 		presets.rundownTitle = {
 			type: 'button',
@@ -464,6 +487,53 @@ module.exports = {
 							bgcolor: combineRgb(239, 68, 68), // Rundown Studio red, #ef4444
 							color: combineRgb(255, 255, 255),
 						},
+					},
+				],
+			}
+		}
+
+		// One Start/Pause button per sub-timer: a small "Sub-timer" caption bar on
+		// top, then the timer's name and live time. The feedbacks only recolour the
+		// bar (green running, amber paused, red finished/overtime) so the name and
+		// time stay white on black. Regenerated whenever the sub-timer list changes.
+		for (const subTimer of self.getSubTimerChoices()) {
+			const prefix = self.subTimerVariablePrefix(subTimer.id)
+			const options = { subTimerId: subTimer.id }
+
+			presets[`subTimerToggle_${subTimer.id}`] = {
+				type: 'button',
+				category: 'Sub-timers',
+				name: `${subTimer.label}: Start/Pause`,
+				style: {
+					size: '18',
+					color: combineRgb(255, 255, 255),
+					bgcolor: combineRgb(0, 0, 0),
+					text: `$(rundown-studio:${prefix}_name)\\n$(rundown-studio:${prefix}_time)`,
+					alignment: 'center:bottom',
+					png64: self.ICONS['subtimer_label'],
+					pngalignment: 'center:top',
+				},
+				steps: [{ down: [{ actionId: 'toggleSubTimer', options }], up: [] }],
+				feedbacks: [
+					{
+						feedbackId: 'subTimerState',
+						options: { ...options, state: 'running' },
+						style: { png64: self.ICONS['subtimer_label_running'] },
+					},
+					{
+						feedbackId: 'subTimerState',
+						options: { ...options, state: 'paused' },
+						style: { png64: self.ICONS['subtimer_label_paused'] },
+					},
+					{
+						feedbackId: 'subTimerState',
+						options: { ...options, state: 'finished' },
+						style: { png64: self.ICONS['subtimer_label_finished'] },
+					},
+					{
+						feedbackId: 'subTimerOvertime',
+						options,
+						style: { png64: self.ICONS['subtimer_label_finished'] },
 					},
 				],
 			}

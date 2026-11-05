@@ -126,10 +126,10 @@ module.exports = {
 			category: 'Transport Controls',
 			name: 'Reset Rundown',
 			style: {
-				text: 'RESET',
 				size: '18',
 				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(0, 0, 0),
+				png64: self.ICONS['reset'],
 			},
 			steps: [
 				{

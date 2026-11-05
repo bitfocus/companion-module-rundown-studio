@@ -79,7 +79,7 @@ module.exports = {
 	},
 
 	// Parses the text/event-stream framing off the response body. We hand-roll it
-	// rather than use EventSource: the module targets the node18 runtime (no global
+	// rather than use EventSource: the module targets the node22 runtime (no global
 	// EventSource), and EventSource can neither send an Authorization header nor
 	// resume after a server-side close.
 	consumeStream: async function (res, controller) {
